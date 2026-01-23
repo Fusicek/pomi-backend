@@ -2,6 +2,14 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const app = express();
+const sequelize = require('./config/db');
+
+sequelize.authenticate()
+  .then(() => console.log('Database connected'))
+  .catch(err => console.error('Database error:', err));
+
+sequelize.sync();
+
 
 const authRoutes = require('./routes/auth');
 const usersRoutes = require('./routes/users');
@@ -20,3 +28,4 @@ app.use('/api/reviews', reviewsRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Backend běží na portu ${PORT}`));
+
