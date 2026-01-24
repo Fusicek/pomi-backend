@@ -1,24 +1,51 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const auth = require('../middleware/auth');
-const { Job } = require('../models/Job');
+const { Job } = require("../models/Job");
 
-// Získat všechny zakázky
-router.get('/', auth, async (req, res) => {
-  const jobs = await Job.findAll();
-  res.json(jobs);
-});
-
-module.exports = router;
-// Vytvořit novou zakázku
-router.post('/', async (req, res) => {
+/**
+ * GET /api/jobs
+ * veřejný výpis zakázek
+ */
+router.get("/", async (req, res) => {
   try {
-    const job = await Job.create(req.body);
-    res.json(job);
+    const jobs = await Job.findAll({
+      order: [["createdAt", "DESC"]],
+    });
+    res.json(jobs);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Nepodařilo se vytvořit zakázku' });
+    res.status(500).json({
+      error: "Nepodařilo se načíst zakázky",
+    });
   }
 });
 
+/**
+ * POST /api/jobs
+ * vytvoření nové zakázky
+ */
+router.post("/", async (req, res) => {
+  const { title, description } = req.body;
 
+  if (!title || !description) {
+    return res.status(400).json({
+      error: "Název a popis jsou povinné",
+    });
+  }
+
+  try {
+    const job = await Job.create({
+      title,
+      description,
+    });
+
+    res.json(job);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Nepodařilo se vytvořit zakázku",
+    });
+  }
+});
+
+module.exports = router;
