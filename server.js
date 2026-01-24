@@ -26,6 +26,11 @@ app.use('/api/jobs', jobsRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/reviews', reviewsRoutes);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Backend běží na portu ${PORT}`));
+const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, () => {
+  console.log(`Backend běží na portu ${PORT}`);
+});
+
+
 
