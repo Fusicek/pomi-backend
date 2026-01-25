@@ -1,10 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-
 const sequelize = require("./config/db");
 
-const authRoutes = require("./routes/auth");
 const usersRoutes = require("./routes/users");
 const jobsRoutes = require("./routes/jobs");
 
@@ -13,24 +11,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ROUTES
-app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/jobs", jobsRoutes);
 
-// TEST ROUTE
 app.get("/", (req, res) => {
   res.send("Pomi backend běží");
 });
 
-// !!! DŮLEŽITÉ !!!
+/**
+ * ❗ TOTO JE KLÍČ ❗
+ * force: true smaže ENUMy i tabulky
+ */
 sequelize
-  .sync({ alter: true })
+  .sync({ force: true })
   .then(() => {
-    console.log("✅ Databáze synchronizována");
+    console.log("✅ DB kompletně znovu vytvořena");
   })
   .catch((err) => {
-    console.error("❌ Chyba DB:", err);
+    console.error("❌ DB chyba:", err);
   });
 
 const PORT = process.env.PORT || 5000;
