@@ -1,8 +1,10 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+
 const sequelize = require("./config/db");
 
+// ROUTES
 const usersRoutes = require("./routes/users");
 const jobsRoutes = require("./routes/jobs");
 
@@ -11,21 +13,23 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// API ROUTES
 app.use("/api/users", usersRoutes);
 app.use("/api/jobs", jobsRoutes);
 
+// HEALTH CHECK
 app.get("/", (req, res) => {
-  res.send("Pomi backend běží");
+  res.send("Pomi backend běží ✅");
 });
 
-/**
- * ❗ TOTO JE KLÍČ ❗
- * force: true smaže ENUMy i tabulky
- */
+// ✅ BEZPEČNÁ SYNCHRONIZACE
+// - nemaže DB
+// - nepřepisuje ENUMy
+// - jen ověří strukturu
 sequelize
-  .sync({ force: true })
+  .sync()
   .then(() => {
-    console.log("✅ DB kompletně znovu vytvořena");
+    console.log("✅ DB připojena a připravena");
   })
   .catch((err) => {
     console.error("❌ DB chyba:", err);
