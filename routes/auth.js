@@ -1,35 +1,62 @@
-const express = require('express');
+import express from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { User } = require('../models/User');
 
-// Register
-router.post('/register', async (req, res) => {
-  const { name, email, password, role } = req.body;
+/**
+ * REGISTRACE
+ */
+router.post("/register", async (req, res) => {
+  const { email, password, role } = req.body;
+
+  if (!email || !password || !role) {
+    return res.status(400).json({ error: "Chybí údaje" });
+  }
+
+  const hash = await bcrypt.hash(password, 10);
+
   try {
-    const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashed, role });
-    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET);
-    res.json({ token });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    const user = await User.create({
+      email,
+      passwordHash: hash,
+      role,
+    });
+
+    res.json({ success: true });
+  } catch {
+    res.status(400).json({ error: "Uživatel již existuje" });
   }
 });
 
-// Login
-router.post('/login', async (req, res) => {
+/**
+ * LOGIN
+ */
+router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  try {
-    const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(400).json({ message: 'User not found' });
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ message: 'Wrong password' });
-    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET);
-    res.json({ token });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+
+  const user = await User.findOne({ where: { email } });
+
+  if (!user) {
+    return res.status(401).json({ error: "Neplatné přihlášení" });
   }
+
+  const ok = await bcrypt.compare(password, user.passwordHash);
+
+  if (!ok) {
+    return res.status(401).json({ error: "Neplatné přihlášení" });
+  }
+
+  const token = jwt.sign(
+    { userId: user.id, email: user.email, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  res.json({ token });
 });
 
-module.exports = router;
+export default router;
+
+
