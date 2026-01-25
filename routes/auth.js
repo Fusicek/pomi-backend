@@ -1,7 +1,7 @@
-import express from "express";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import User from "../models/User.js";
+const express = require("express");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const { User } = require("../models");
 
 const router = express.Router();
 
@@ -9,24 +9,30 @@ const router = express.Router();
  * REGISTRACE
  */
 router.post("/register", async (req, res) => {
-  const { email, password, role } = req.body;
-
-  if (!email || !password || !role) {
-    return res.status(400).json({ error: "Chybí údaje" });
-  }
-
-  const hash = await bcrypt.hash(password, 10);
-
   try {
+    const { email, password, name } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email a heslo jsou povinné" });
+    }
+
+    const existing = await User.findOne({ where: { email } });
+    if (existing) {
+      return res.status(400).json({ message: "Uživatel už existuje" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = await User.create({
       email,
-      passwordHash: hash,
-      role,
+      password: hashedPassword,
+      name,
     });
 
-    res.json({ success: true });
-  } catch {
-    res.status(400).json({ error: "Uživatel již existuje" });
+    res.json({ message: "Uživatel vytvořen", userId: user.id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Chyba serveru" });
   }
 });
 
@@ -34,29 +40,32 @@ router.post("/register", async (req, res) => {
  * LOGIN
  */
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(401).json({ message: "Neplatné přihlášení" });
+    }
 
-  if (!user) {
-    return res.status(401).json({ error: "Neplatné přihlášení" });
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ message: "Neplatné přihlášení" });
+    }
+
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({ token });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Chyba serveru" });
   }
-
-  const ok = await bcrypt.compare(password, user.passwordHash);
-
-  if (!ok) {
-    return res.status(401).json({ error: "Neplatné přihlášení" });
-  }
-
-  const token = jwt.sign(
-    { userId: user.id, email: user.email, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-
-  res.json({ token });
 });
 
-export default router;
+module.exports = router;
 
 
