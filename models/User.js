@@ -1,20 +1,35 @@
-import { DataTypes } from "sequelize";
-import sequelize from "../config/db.js";
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/db");
 
 const User = sequelize.define("User", {
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
   email: {
     type: DataTypes.STRING,
-    unique: true,
     allowNull: false,
+    unique: true
   },
-  passwordHash: {
+  password: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: false
   },
   role: {
-    type: DataTypes.ENUM("requester", "helper"),
-    allowNull: false,
+    type: DataTypes.STRING,
+    allowNull: false
   },
+  location: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  experience: {
+    type: DataTypes.TEXT,
+    allowNull: false
+  },
+  skills: {
+    type: DataTypes.TEXT
+  }
 });
 
-export default User;
+module.exports = User;
