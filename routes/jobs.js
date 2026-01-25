@@ -11,12 +11,7 @@ const router = express.Router();
  */
 router.post("/", async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      mode,
-      requesterEmail,
-    } = req.body;
+    const { title, description, mode, requesterEmail } = req.body;
 
     const job = await Job.create({
       title,
@@ -31,13 +26,12 @@ router.post("/", async (req, res) => {
 
     res.json(job);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Nelze vytvořit zakázku" });
   }
 });
 
 /**
- * ZÍSKÁNÍ ZAKÁZEK ZADAVATELE
+ * ZAKÁZKY ZADAVATELE
  */
 router.get("/my/:email", async (req, res) => {
   try {
@@ -47,16 +41,34 @@ router.get("/my/:email", async (req, res) => {
     });
 
     res.json(jobs);
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Nelze načíst zakázky" });
   }
 });
 
 /**
- * ZMĚNA STAVU ZAKÁZKY + EMAIL NOTIFIKACE
+ * ZAKÁZKY PRO POMOCNÍKA (POUZE WAITING)
+ */
+router.get("/available", async (req, res) => {
+  try {
+    const jobs = await Job.findAll({
+      where: {
+        status: JobStatus.NEW_WAITING,
+      },
+      order: [["createdAt", "DESC"]],
+    });
+
+    res.json(jobs);
+  } catch {
+    res.status(500).json({ error: "Nelze načíst zakázky" });
+  }
+});
+
+/**
+ * ZMĚNA STAVU + EMAILY
  */
 router.post("/:id/status", async (req, res) => {
-  const { newStatus, agreedDate, helperEmail } = req.body;
+  const { newStatus, helperEmail, agreedDate } = req.body;
 
   try {
     const job = await Job.findByPk(req.params.id);
@@ -71,49 +83,22 @@ router.post("/:id/status", async (req, res) => {
       });
     }
 
-    // při MATCHED ukládáme pomocníka
     if (newStatus === JobStatus.MATCHED && helperEmail) {
       job.helperEmail = helperEmail;
     }
 
-    // při AGREED ukládáme datum
     if (newStatus === JobStatus.AGREED && agreedDate) {
       job.agreedDate = agreedDate;
     }
 
     job.status = newStatus;
-
-    await job.save();
-
-    // 🔔 EMAIL NOTIFIKACE (CENTRÁLNĚ)
-    await handleJobStatusEmail(job);
-
-    res.json(job);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Chyba při změně stavu zakázky" });
-  }
-});
-
-/**
- * ZRUŠENÍ ZAKÁZKY
- */
-router.post("/:id/cancel", async (req, res) => {
-  try {
-    const job = await Job.findByPk(req.params.id);
-
-    if (!job) {
-      return res.status(404).json({ error: "Zakázka nenalezena" });
-    }
-
-    job.status = JobStatus.CANCELLED;
     await job.save();
 
     await handleJobStatusEmail(job);
 
     res.json(job);
-  } catch (err) {
-    res.status(500).json({ error: "Nelze zrušit zakázku" });
+  } catch {
+    res.status(500).json({ error: "Chyba při změně stavu" });
   }
 });
 
