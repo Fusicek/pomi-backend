@@ -38,5 +38,43 @@ router.post('/', async (req, res) => {
 });
 
 module.exports = router;
+import Job from "../models/Job.js";
+import { JobStatus } from "../constants/jobStatus.js";
+import { canTransition } from "../services/jobStateMachine.js";
+
+/**
+ * ZMĚNA STAVU ZAKÁZKY
+ */
+router.post("/:id/status", async (req, res) => {
+  const { newStatus, agreedDate } = req.body;
+
+  try {
+    const job = await Job.findByPk(req.params.id);
+
+    if (!job) {
+      return res.status(404).json({ error: "Zakázka nenalezena" });
+    }
+
+    if (!canTransition(job.status, newStatus)) {
+      return res.status(400).json({
+        error: `Nelze přejít ze stavu ${job.status} do ${newStatus}`,
+      });
+    }
+
+    job.status = newStatus;
+
+    if (newStatus === JobStatus.AGREED && agreedDate) {
+      job.agreedDate = agreedDate;
+    }
+
+    await job.save();
+
+    res.json(job);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Chyba při změně stavu" });
+  }
+});
+
 
 
