@@ -24,10 +24,11 @@ const User = sequelize.define("User", {
     allowNull: false,
   },
 
+  // ❗ ENUM PRYČ – obyčejný STRING
   role: {
     type: DataTypes.STRING,
     allowNull: false,
-    defaultValue: "helper", // helper | client
+    defaultValue: "helper",
   },
 
   location: {
