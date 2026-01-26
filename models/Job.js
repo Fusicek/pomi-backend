@@ -4,7 +4,7 @@ const sequelize = require("../config/db");
 const Job = sequelize.define("Job", {
   category: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true, // ⚠️ DOČASNĚ – KVŮLI EXISTUJÍCÍM DATŮM
   },
 
   location: {
@@ -33,8 +33,9 @@ const Job = sequelize.define("Job", {
   },
 
   mode: {
-    type: DataTypes.STRING, // wait | choose
+    type: DataTypes.STRING,
     allowNull: false,
+    defaultValue: "wait",
   },
 
   status: {
@@ -44,5 +45,4 @@ const Job = sequelize.define("Job", {
 });
 
 module.exports = Job;
-
 
