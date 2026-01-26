@@ -8,9 +8,19 @@ const Job = sequelize.define("Job", {
     primaryKey: true,
   },
 
-  type: {
+  category: {
     type: DataTypes.STRING,
     allowNull: false,
+  },
+
+  title: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
 
   location: {
@@ -18,18 +28,13 @@ const Job = sequelize.define("Job", {
     allowNull: false,
   },
 
-  date: {
-    type: DataTypes.DATEONLY,
-    allowNull: false,
-  },
-
   timeFrom: {
-    type: DataTypes.STRING,
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
 
   timeTo: {
-    type: DataTypes.STRING,
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
 
@@ -39,15 +44,18 @@ const Job = sequelize.define("Job", {
   },
 
   mode: {
-    type: DataTypes.STRING, // wait | choose
+    type: DataTypes.STRING, // wait / choose
     allowNull: false,
   },
 
   status: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    defaultValue: "čeká na pomocníka",
+    type: DataTypes.STRING, // open / connected / done
+    defaultValue: "open",
   },
 });
 
 module.exports = Job;
+
+
+module.exports = Job;
+
