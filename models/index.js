@@ -1,9 +1,12 @@
+const { Sequelize, DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
 
-// pouze načteme modely, NIC NEVOLÁME
-require("./User");
-require("./Job");
+const User = require("./User")(sequelize, DataTypes);
+const Job = require("./Job")(sequelize, DataTypes);
 
 module.exports = {
   sequelize,
+  Sequelize,
+  User,
+  Job,
 };
