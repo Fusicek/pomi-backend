@@ -1,43 +1,43 @@
-require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
-const sequelize = require("./config/db");
+const { sequelize } = require("./models");
 
+// ROUTES
 const authRoutes = require("./routes/auth");
 const usersRoutes = require("./routes/users");
 const jobsRoutes = require("./routes/jobs");
-const chatsRoutes = require("./routes/chats");
-const reviewsRoutes = require("./routes/reviews");
+// ❌ chat zatím NEPOUŽÍVÁME – proto tu NENÍ
 
 const app = express();
 
+// ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json());
 
-// ROUTES
+// ===== ROUTES =====
 app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/jobs", jobsRoutes);
-app.use("/api/chats", chatsRoutes);
-app.use("/api/reviews", reviewsRoutes);
 
-// DB SYNC – 🔴 TOHLE JE KLÍČOVÉ
-(async () => {
-  try {
-    await sequelize.authenticate();
-    console.log("✅ Database connected");
+// ===== HEALTH CHECK =====
+app.get("/", (req, res) => {
+  res.send("Pomi backend běží");
+});
 
-    await sequelize.sync({ alter: true });
-    console.log("✅ Database synced (alter)");
+// ===== START SERVER =====
+const PORT = process.env.PORT || 5000;
 
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () =>
-      console.log(`🚀 Server běží na portu ${PORT}`)
-    );
-  } catch (err) {
-    console.error("❌ DB error:", err);
-  }
-})();
+sequelize
+  .sync({ alter: true }) // ⚠️ DŮLEŽITÉ – NESMAŽE DB, jen ji dorovná
+  .then(() => {
+    console.log("📦 Databáze synchronizována");
+    app.listen(PORT, () => {
+      console.log(`🚀 Server běží na portu ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Chyba databáze:", err);
+  });
 
 
