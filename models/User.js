@@ -2,25 +2,41 @@ const { DataTypes } = require("sequelize");
 
 module.exports = (sequelize) => {
   return sequelize.define("User", {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+
     name: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: false,
     },
+
     email: {
       type: DataTypes.STRING,
+      allowNull: false,
       unique: true,
-      allowNull: false
     },
+
     password: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: false,
     },
+
     role: {
-      type: DataTypes.ENUM("zadavatel", "zhotovitel"),
-      allowNull: false
+      type: DataTypes.STRING, // "zadavatel" | "zhotovitel"
+      allowNull: false,
     },
+
     location: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+
+    experience: {
+      type: DataTypes.TEXT,
+      allowNull: true,
     }
   });
 };
