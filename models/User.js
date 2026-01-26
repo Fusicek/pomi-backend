@@ -1,44 +1,44 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { Model } = require("sequelize");
 
-const User = sequelize.define("User", {
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-
-  email: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-  },
-
-  password: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-
-  role: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    defaultValue: "helper",
-  },
-
-  location: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-
-  experience: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-
-  skills: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-});
+class User extends Model {
+  static initModel(sequelize, DataTypes) {
+    User.init(
+      {
+        name: {
+          type: DataTypes.STRING,
+          allowNull: false,
+        },
+        email: {
+          type: DataTypes.STRING,
+          allowNull: false,
+          unique: true,
+        },
+        password: {
+          type: DataTypes.STRING,
+          allowNull: false,
+        },
+        role: {
+          type: DataTypes.ENUM("customer", "provider"),
+          allowNull: false,
+        },
+        location: {
+          type: DataTypes.STRING,
+        },
+        experience: {
+          type: DataTypes.TEXT,
+        },
+        skills: {
+          type: DataTypes.TEXT,
+        },
+      },
+      {
+        sequelize,
+        modelName: "User",
+      }
+    );
+  }
+}
 
 module.exports = User;
+
 
