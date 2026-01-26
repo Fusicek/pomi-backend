@@ -2,17 +2,6 @@ const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
 
 const Job = sequelize.define("Job", {
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
-  },
-
-  category: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-
   title: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -20,7 +9,12 @@ const Job = sequelize.define("Job", {
 
   description: {
     type: DataTypes.TEXT,
-    allowNull: true,
+    allowNull: false,
+  },
+
+  category: {
+    type: DataTypes.STRING,
+    allowNull: false,
   },
 
   location: {
@@ -29,33 +23,36 @@ const Job = sequelize.define("Job", {
   },
 
   timeFrom: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.INTEGER, // 1–24
     allowNull: false,
   },
 
   timeTo: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.INTEGER, // 1–24
     allowNull: false,
   },
 
-  reward: {
+  rewardEstimate: {
     type: DataTypes.STRING,
     allowNull: true,
   },
 
-  mode: {
-    type: DataTypes.STRING, // wait / choose
-    allowNull: false,
+  waitingForHelper: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
   },
 
-  status: {
-    type: DataTypes.STRING, // open / connected / done
-    defaultValue: "open",
+  providerId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+
+  customerId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
 });
 
 module.exports = Job;
 
-
-module.exports = Job;
 
