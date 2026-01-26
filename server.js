@@ -4,31 +4,45 @@ const cors = require("cors");
 
 const { sequelize } = require("./models");
 
-const usersRoutes = require("./routes/users");
 const jobsRoutes = require("./routes/jobs");
+const usersRoutes = require("./routes/users");
+const chatsRoutes = require("./routes/chats");
 
 const app = express();
 
-app.use(cors());
+/* ===== MIDDLEWARE ===== */
+app.use(cors({
+  origin: "*",
+}));
 app.use(express.json());
 
-app.use("/api/users", usersRoutes);
-app.use("/api/jobs", jobsRoutes);
-
+/* ===== ROUTES ===== */
 app.get("/", (req, res) => {
-  res.send("Pomi backend běží");
+  res.json({ status: "API running" });
 });
 
+app.use("/api/jobs", jobsRoutes);
+app.use("/api/users", usersRoutes);
+app.use("/api/chats", chatsRoutes);
+
+/* ===== DB SYNC =====
+⚠️ NESMAŽE DATA
+jen dorovnává sloupce
+*/
 sequelize
   .sync({ alter: true })
   .then(() => {
     console.log("✅ DB synchronizována");
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () =>
-      console.log(`🚀 Server běží na portu ${PORT}`)
-    );
   })
   .catch((err) => {
     console.error("❌ DB chyba:", err);
   });
+
+/* ===== SERVER ===== */
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server běží na portu ${PORT}`);
+});
+
 
