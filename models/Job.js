@@ -1,6 +1,4 @@
-const { DataTypes } = require("sequelize");
-
-module.exports = (sequelize) => {
+module.exports = (sequelize, DataTypes) => {
   const Job = sequelize.define("Job", {
     title: {
       type: DataTypes.STRING,
@@ -14,34 +12,40 @@ module.exports = (sequelize) => {
 
     category: {
       type: DataTypes.STRING,
-      allowNull: true, // ⬅️ DŮLEŽITÉ – kvůli starým datům
+      allowNull: false,
+    },
+
+    location: {
+      type: DataTypes.STRING,
+      allowNull: false,
     },
 
     reward: {
       type: DataTypes.STRING,
-      allowNull: true, // orientační odměna
-    },
-
-    date: {
-      type: DataTypes.DATEONLY,
-      allowNull: false,
+      allowNull: true,
     },
 
     timeFrom: {
-      type: DataTypes.INTEGER, // 1–24
-      allowNull: false,
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
 
     timeTo: {
-      type: DataTypes.INTEGER, // 1–24
-      allowNull: false,
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
 
     status: {
       type: DataTypes.STRING,
-      defaultValue: "open", // open | matched | done
+      defaultValue: "waiting",
+    },
+
+    waitingForHelper: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
     },
   });
 
   return Job;
 };
+
