@@ -1,50 +1,46 @@
 const express = require("express");
+const router = express.Router();
 const Job = require("../models/Job");
 
-const router = express.Router();
-
-/**
- * Vytvořit zakázku
- */
 router.post("/", async (req, res) => {
   try {
     const {
-      type,
+      category,
+      title,
+      description,
       location,
-      date,
       timeFrom,
       timeTo,
       reward,
       mode,
     } = req.body;
 
-    if (!type || !location || !date || !timeFrom || !timeTo || !mode) {
-      return res.status(400).json({ message: "Chybí povinné údaje" });
+    if (!category || !title || !location || !timeFrom || !timeTo || !mode) {
+      return res.status(400).json({ error: "Chybí povinná pole" });
     }
 
     const job = await Job.create({
-      type,
+      category,
+      title,
+      description,
       location,
-      date,
       timeFrom,
       timeTo,
       reward,
       mode,
     });
 
-    res.json({ message: "Zakázka vytvořena", job });
+    res.json(job);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Chyba serveru" });
+    console.error("CREATE JOB ERROR:", err);
+    res.status(500).json({ error: "Chyba serveru" });
   }
 });
 
-/**
- * Seznam zakázek
- */
 router.get("/", async (req, res) => {
-  const jobs = await Job.findAll({ order: [["createdAt", "DESC"]] });
+  const jobs = await Job.findAll();
   res.json(jobs);
 });
 
 module.exports = router;
+
