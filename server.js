@@ -1,35 +1,30 @@
 const express = require("express");
-const pool = require("./db");
-
-const usersRoutes = require("./routes/users");
+const cors = require("cors");
+const { sequelize } = require("./models");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
+app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.json({
-    ok: true,
-    message: "Pomi backend běží"
-  });
+  res.json({ status: "API OK" });
 });
 
-app.get("/db-test", async (req, res) => {
+app.get("/api/jobs", async (req, res) => {
+  res.json({ status: "GET OK" });
+});
+
+(async () => {
   try {
-    const result = await pool.query("SELECT NOW()");
-    res.json({
-      ok: true,
-      dbTime: result.rows[0].now
+    await sequelize.authenticate();
+    await sequelize.sync(); // 🔥 vytvoří tabulky, NESMAŽE data
+    console.log("✅ DB připojena");
+
+    app.listen(5000, () => {
+      console.log("🚀 Server běží na portu 5000");
     });
   } catch (err) {
-    res.status(500).json({ ok: false });
+    console.error("❌ Chyba DB:", err);
   }
-});
-
-/* ROUTES */
-app.use("/api/users", usersRoutes);
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server běží na portu ${PORT}`);
-});
+})();
