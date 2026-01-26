@@ -1,48 +1,47 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
 
-const Job = sequelize.define("Job", {
-  category: {
-    type: DataTypes.STRING,
-    allowNull: true, // ⚠️ DOČASNĚ – KVŮLI EXISTUJÍCÍM DATŮM
-  },
+module.exports = (sequelize) => {
+  const Job = sequelize.define("Job", {
+    title: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
 
-  location: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
 
-  date: {
-    type: DataTypes.DATEONLY,
-    allowNull: false,
-  },
+    category: {
+      type: DataTypes.STRING,
+      allowNull: true, // ⬅️ DŮLEŽITÉ – kvůli starým datům
+    },
 
-  timeFrom: {
-    type: DataTypes.INTEGER, // 1–24
-    allowNull: false,
-  },
+    reward: {
+      type: DataTypes.STRING,
+      allowNull: true, // orientační odměna
+    },
 
-  timeTo: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
+    date: {
+      type: DataTypes.DATEONLY,
+      allowNull: false,
+    },
 
-  reward: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
+    timeFrom: {
+      type: DataTypes.INTEGER, // 1–24
+      allowNull: false,
+    },
 
-  mode: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    defaultValue: "wait",
-  },
+    timeTo: {
+      type: DataTypes.INTEGER, // 1–24
+      allowNull: false,
+    },
 
-  status: {
-    type: DataTypes.STRING,
-    defaultValue: "open",
-  },
-});
+    status: {
+      type: DataTypes.STRING,
+      defaultValue: "open", // open | matched | done
+    },
+  });
 
-module.exports = Job;
-
+  return Job;
+};
