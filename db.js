@@ -1,14 +1,18 @@
-const { Sequelize } = require("sequelize");
+const { Pool } = require("pg");
 
-const DATABASE_URL = process.env.DATABASE_URL;
-
-if (!DATABASE_URL) {
-  throw new Error("❌ DATABASE_URL není nastavená");
-}
-
-const sequelize = new Sequelize(DATABASE_URL, {
-  dialect: "postgres",
-  logging: false
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-module.exports = sequelize;
+pool
+  .query("SELECT 1")
+  .then(() => console.log("✅ DB připojena"))
+  .catch(err => {
+    console.error("❌ DB chyba", err);
+    process.exit(1);
+  });
+
+module.exports = pool;
