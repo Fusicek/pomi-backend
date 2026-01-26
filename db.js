@@ -1,8 +1,14 @@
 const { Sequelize } = require("sequelize");
 
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  throw new Error("❌ DATABASE_URL není nastavená");
+}
+
+const sequelize = new Sequelize(DATABASE_URL, {
   dialect: "postgres",
-  logging: false,
+  logging: false
 });
 
 module.exports = sequelize;
