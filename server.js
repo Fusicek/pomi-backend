@@ -1,8 +1,12 @@
 const express = require("express");
 const pool = require("./db");
 
+const usersRoutes = require("./routes/users");
+
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+app.use(express.json());
 
 app.get("/", (req, res) => {
   res.json({
@@ -11,9 +15,6 @@ app.get("/", (req, res) => {
   });
 });
 
-/**
- * TEST DB PŘIPOJENÍ
- */
 app.get("/db-test", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW()");
@@ -22,13 +23,12 @@ app.get("/db-test", async (req, res) => {
       dbTime: result.rows[0].now
     });
   } catch (err) {
-    console.error("DB error:", err);
-    res.status(500).json({
-      ok: false,
-      error: "DB connection failed"
-    });
+    res.status(500).json({ ok: false });
   }
 });
+
+/* ROUTES */
+app.use("/api/users", usersRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server běží na portu ${PORT}`);
