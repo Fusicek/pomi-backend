@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const { sequelize } = require("./models");
 
+const usersRoutes = require("./routes/users");
+
 const app = express();
 
 app.use(cors());
@@ -11,14 +13,12 @@ app.get("/", (req, res) => {
   res.json({ status: "API OK" });
 });
 
-app.get("/api/jobs", async (req, res) => {
-  res.json({ status: "GET OK" });
-});
+app.use("/api/users", usersRoutes);
 
 (async () => {
   try {
     await sequelize.authenticate();
-    await sequelize.sync(); // 🔥 vytvoří tabulky, NESMAŽE data
+    await sequelize.sync();
     console.log("✅ DB připojena");
 
     app.listen(5000, () => {
