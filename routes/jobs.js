@@ -2,27 +2,29 @@ const express = require("express");
 const router = express.Router();
 const { Job } = require("../models");
 
-// ============================
-// GET /api/jobs
-// všechny zakázky
-// ============================
-router.get("/", async (req, res) => {
+// vytvoření zakázky
+router.post("/", async (req, res) => {
   try {
-    const jobs = await Job.findAll({
-      order: [["createdAt", "DESC"]],
-    });
-
-    res.json(jobs);
+    const job = await Job.create(req.body);
+    res.json(job);
   } catch (err) {
-    console.error("GET JOBS ERROR:", err);
+    console.error("JOB CREATE ERROR:", err);
     res.status(500).json({ error: "Chyba serveru" });
   }
 });
 
-// ============================
-// GET /api/jobs/my?customerId=1
-// zakázky jednoho zadavatele
-// ============================
+// všechny zakázky
+router.get("/", async (req, res) => {
+  try {
+    const jobs = await Job.findAll();
+    res.json(jobs);
+  } catch (err) {
+    console.error("JOB GET ERROR:", err);
+    res.status(500).json({ error: "Chyba serveru" });
+  }
+});
+
+// zakázky konkrétního zadavatele
 router.get("/my", async (req, res) => {
   const { customerId } = req.query;
 
@@ -32,27 +34,11 @@ router.get("/my", async (req, res) => {
 
   try {
     const jobs = await Job.findAll({
-      where: { customerId },
-      order: [["createdAt", "DESC"]],
+      where: { customerId }
     });
-
     res.json(jobs);
   } catch (err) {
-    console.error("GET MY JOBS ERROR:", err);
-    res.status(500).json({ error: "Chyba serveru" });
-  }
-});
-
-// ============================
-// POST /api/jobs
-// vytvoření zakázky
-// ============================
-router.post("/", async (req, res) => {
-  try {
-    const job = await Job.create(req.body);
-    res.status(201).json(job);
-  } catch (err) {
-    console.error("JOB CREATE ERROR:", err);
+    console.error("JOB MY ERROR:", err);
     res.status(500).json({ error: "Chyba serveru" });
   }
 });
