@@ -1,55 +1,17 @@
-module.exports = (sequelize, DataTypes) => {
-  const Job = sequelize.define("Job", {
-    title: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
+const Job = sequelize.define("Job", {
+  title: DataTypes.STRING,
 
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
+  category: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: "ostatni", // 🔥 KLÍČOVÉ
+  },
 
-    category: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-
-    reward: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-
-    date: {
-      type: DataTypes.DATEONLY,
-      allowNull: false,
-    },
-
-    timeFrom: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-
-    timeTo: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-
-    location: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-
-    status: {
-      type: DataTypes.STRING,
-      defaultValue: "cekani",
-    },
-
-    customerId: {
-      type: DataTypes.INTEGER,
-      allowNull: true, // ⬅️ KLÍČOVÁ ZMĚNA
-    },
-  });
-
-  return Job;
-};
+  description: DataTypes.TEXT,
+  reward: DataTypes.STRING,
+  date: DataTypes.STRING,
+  timeFrom: DataTypes.STRING,
+  timeTo: DataTypes.STRING,
+  location: DataTypes.STRING,
+  status: DataTypes.STRING,
+});
