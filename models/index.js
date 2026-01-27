@@ -1,13 +1,16 @@
-const sequelize = require("../db");
-const User = require("./User");
-const Job = require("./Job");
+const { Sequelize } = require("sequelize");
 
-User.initModel(sequelize);
-Job.initModel(sequelize);
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: "postgres",
+  logging: false,
+});
 
-// vztahy
-User.hasMany(Job, { foreignKey: "userId" });
-Job.belongsTo(User, { foreignKey: "userId" });
+const User = require("./User")(sequelize);
+const Job = require("./Job")(sequelize);
+
+// vztah
+User.hasMany(Job);
+Job.belongsTo(User);
 
 module.exports = {
   sequelize,
