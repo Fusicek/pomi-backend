@@ -38,7 +38,7 @@ app.post("/api/users/register", async (req, res) => {
       name,
       email,
       password: hash,
-      role, // "zadavatel" | "zhotovitel"
+      role,
     });
 
     res.json({
@@ -61,50 +61,13 @@ app.post("/api/users/register", async (req, res) => {
 ========================= */
 app.post("/api/jobs", async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      category,
-      reward,
-      date,
-      timeFrom,
-      timeTo,
-      location,
-      customerId,
-    } = req.body;
-
-    if (
-      !title ||
-      !description ||
-      !category ||
-      !reward ||
-      !date ||
-      !timeFrom ||
-      !timeTo ||
-      !location ||
-      !customerId
-    ) {
-      return res.status(400).json({ error: "Chybí povinná pole" });
-    }
-
-    const job = await Job.create({
-      title,
-      description,
-      category,
-      reward,
-      date,
-      timeFrom,
-      timeTo,
-      location,
-      customerId,
-    });
-
+    const job = await Job.create(req.body);
     res.json({
       message: "Zakázka vytvořena",
       job,
     });
   } catch (err) {
-    console.error("JOB ERROR:", err);
+    console.error("JOB CREATE ERROR:", err);
     res.status(500).json({ error: "Chyba serveru" });
   }
 });
@@ -119,7 +82,31 @@ app.get("/api/jobs", async (req, res) => {
     });
     res.json(jobs);
   } catch (err) {
-    console.error(err);
+    console.error("JOB LIST ERROR:", err);
+    res.status(500).json({ error: "Chyba serveru" });
+  }
+});
+
+/* =========================
+   🧑 DASHBOARD ZADAVATELE
+   jen moje zakázky
+========================= */
+app.get("/api/jobs/my", async (req, res) => {
+  try {
+    const { customerId } = req.query;
+
+    if (!customerId) {
+      return res.status(400).json({ error: "Chybí customerId" });
+    }
+
+    const jobs = await Job.findAll({
+      where: { customerId },
+      order: [["createdAt", "DESC"]],
+    });
+
+    res.json(jobs);
+  } catch (err) {
+    console.error("MY JOBS ERROR:", err);
     res.status(500).json({ error: "Chyba serveru" });
   }
 });
@@ -140,3 +127,4 @@ sequelize
   .catch((err) => {
     console.error("❌ DB chyba:", err);
   });
+
