@@ -7,7 +7,7 @@ module.exports = (sequelize, DataTypes) => {
 
     description: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true, // ⬅️ DŮLEŽITÉ
     },
 
     category: {
@@ -16,7 +16,7 @@ module.exports = (sequelize, DataTypes) => {
     },
 
     reward: {
-      type: DataTypes.STRING, // orientační odměna
+      type: DataTypes.STRING,
       allowNull: false,
     },
 
@@ -26,12 +26,12 @@ module.exports = (sequelize, DataTypes) => {
     },
 
     timeFrom: {
-      type: DataTypes.INTEGER, // 1–24
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
 
     timeTo: {
-      type: DataTypes.INTEGER, // 1–24
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
 
