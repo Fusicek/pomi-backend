@@ -15,7 +15,7 @@ app.get("/", (req, res) => {
 });
 
 // ======================
-// REGISTRACE UŽIVATELE
+// REGISTRACE
 // ======================
 app.post("/api/users/register", async (req, res) => {
   try {
@@ -27,7 +27,7 @@ app.post("/api/users/register", async (req, res) => {
 
     const exists = await User.findOne({ where: { email } });
     if (exists) {
-      return res.status(400).json({ error: "Uživatel již existuje" });
+      return res.status(400).json({ error: "Uživatel existuje" });
     }
 
     const hash = await bcrypt.hash(password, 10);
@@ -43,13 +43,12 @@ app.post("/api/users/register", async (req, res) => {
       message: "Uživatel vytvořen",
       user: {
         id: user.id,
-        name: user.name,
         email: user.email,
         role: user.role,
       },
     });
   } catch (err) {
-    console.error("REGISTER ERROR:", err);
+    console.error(err);
     res.status(500).json({ error: "Chyba serveru" });
   }
 });
@@ -60,34 +59,28 @@ app.post("/api/users/register", async (req, res) => {
 app.post("/api/jobs", async (req, res) => {
   try {
     const job = await Job.create(req.body);
-    res.json({
-      message: "Zakázka vytvořena",
-      job,
-    });
+    res.json(job);
   } catch (err) {
-    console.error("JOB CREATE ERROR:", err);
+    console.error(err);
     res.status(500).json({ error: "Chyba serveru" });
   }
 });
 
 // ======================
-// VÝPIS ZAKÁZEK
+// 🔥 VÝPIS ZAKÁZEK – TADY BYLA CHYBA
 // ======================
 app.get("/api/jobs", async (req, res) => {
   try {
     const jobs = await Job.findAll({
       order: [["createdAt", "DESC"]],
     });
-
     res.json(jobs);
   } catch (err) {
-    console.error("JOB LIST ERROR:", err);
+    console.error(err);
     res.status(500).json({ error: "Chyba serveru" });
   }
 });
 
-// ======================
-// START SERVERU
 // ======================
 const PORT = process.env.PORT || 5000;
 
