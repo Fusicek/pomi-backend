@@ -7,7 +7,7 @@ module.exports = (sequelize, DataTypes) => {
 
     description: {
       type: DataTypes.TEXT,
-      allowNull: true, // ⬅️ DŮLEŽITÉ
+      allowNull: true,
     },
 
     category: {
@@ -47,10 +47,9 @@ module.exports = (sequelize, DataTypes) => {
 
     customerId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true, // ⬅️ KLÍČOVÁ ZMĚNA
     },
   });
 
   return Job;
 };
-
