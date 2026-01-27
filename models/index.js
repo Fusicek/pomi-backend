@@ -1,16 +1,16 @@
-const { Sequelize } = require("sequelize");
+const { Sequelize, DataTypes } = require("sequelize");
 
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: "postgres",
   logging: false,
 });
 
-const User = require("./User")(sequelize);
-const Job = require("./Job")(sequelize);
+const User = require("./User")(sequelize, DataTypes);
+const Job = require("./Job")(sequelize, DataTypes);
 
-// vztah
-User.hasMany(Job);
-Job.belongsTo(User);
+// VAZBY
+User.hasMany(Job, { foreignKey: "customerId" });
+Job.belongsTo(User, { foreignKey: "customerId" });
 
 module.exports = {
   sequelize,
