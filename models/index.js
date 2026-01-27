@@ -1,13 +1,14 @@
 const { Sequelize } = require("sequelize");
+const Job = require("./Job");
 
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: "postgres",
   logging: false,
 });
 
-const User = require("./User")(sequelize);
+Job.initModel(sequelize);
 
 module.exports = {
   sequelize,
-  User,
+  Job,
 };
