@@ -8,45 +8,44 @@ class Job extends Model {
           type: DataTypes.STRING,
           allowNull: false,
         },
-
-        description: {
-          type: DataTypes.TEXT,
-          allowNull: true,
+        category: {
+          type: DataTypes.STRING,
+          allowNull: false,
         },
-
         date: {
           type: DataTypes.DATEONLY,
           allowNull: false,
         },
-
         timeFrom: {
-          type: DataTypes.INTEGER, // hodiny 1–24
+          type: DataTypes.INTEGER,
           allowNull: false,
         },
-
         timeTo: {
           type: DataTypes.INTEGER,
           allowNull: false,
         },
-
         location: {
           type: DataTypes.STRING,
           allowNull: false,
         },
-
-        estimatedReward: {
+        reward: {
           type: DataTypes.STRING,
           allowNull: false,
         },
-
         status: {
-          type: DataTypes.ENUM("cekajici", "domluveno", "hotovo"),
-          defaultValue: "cekajici",
+          type: DataTypes.ENUM(
+            "cekani",
+            "nabidka",
+            "domluveno",
+            "hotovo"
+          ),
+          defaultValue: "cekani",
         },
       },
       {
         sequelize,
         modelName: "Job",
+        tableName: "Jobs",
       }
     );
   }
