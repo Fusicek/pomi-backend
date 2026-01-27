@@ -1,32 +1,22 @@
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
-
-const { sequelize, User } = require("./models");
+const { sequelize, User, Job } = require("./models");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔌 DB + sync
-(async () => {
-  try {
-    await sequelize.authenticate();
-    console.log("✅ DB připojena");
-
-    await sequelize.sync({ alter: true });
-    console.log("✅ Modely synchronizovány");
-  } catch (err) {
-    console.error("❌ DB chyba:", err);
-  }
-})();
-
-// 🟢 healthcheck
+// ======================
+// TEST
+// ======================
 app.get("/", (req, res) => {
   res.json({ status: "API OK" });
 });
 
-// 🧑‍💻 registrace uživatele
+// ======================
+// REGISTRACE UŽIVATELE
+// ======================
 app.post("/api/users/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -35,13 +25,9 @@ app.post("/api/users/register", async (req, res) => {
       return res.status(400).json({ error: "Chybí povinná pole" });
     }
 
-    if (!["zadavatel", "zhotovitel"].includes(role)) {
-      return res.status(400).json({ error: "Neplatná role" });
-    }
-
     const exists = await User.findOne({ where: { email } });
     if (exists) {
-      return res.status(400).json({ error: "Email již existuje" });
+      return res.status(400).json({ error: "Uživatel již existuje" });
     }
 
     const hash = await bcrypt.hash(password, 10);
@@ -68,8 +54,64 @@ app.post("/api/users/register", async (req, res) => {
   }
 });
 
-// 🚀 start
+// ======================
+// VYTVOŘENÍ ZAKÁZKY
+// ======================
+app.post("/api/jobs", async (req, res) => {
+  try {
+    const {
+      title,
+      category,
+      date,
+      timeFrom,
+      timeTo,
+      location,
+      reward,
+      userId,
+    } = req.body;
+
+    if (
+      !title ||
+      !category ||
+      !date ||
+      timeFrom == null ||
+      timeTo == null ||
+      !location ||
+      !reward ||
+      !userId
+    ) {
+      return res.status(400).json({ error: "Chybí povinná pole" });
+    }
+
+    const job = await Job.create({
+      title,
+      category,
+      date,
+      timeFrom,
+      timeTo,
+      location,
+      reward,
+      userId,
+    });
+
+    res.json({
+      message: "Zakázka vytvořena",
+      job,
+    });
+  } catch (err) {
+    console.error("JOB ERROR:", err);
+    res.status(500).json({ error: "Chyba serveru" });
+  }
+});
+
+// ======================
+// START SERVERU
+// ======================
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server běží na portu ${PORT}`)
-);
+
+sequelize.sync().then(() => {
+  console.log("✅ DB připojena a synchronizována");
+  app.listen(PORT, () => {
+    console.log(`🚀 Server běží na portu ${PORT}`);
+  });
+});
