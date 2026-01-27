@@ -1,54 +1,32 @@
-require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const { Sequelize, DataTypes } = require("sequelize");
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
+
+const { sequelize, User } = require("./models");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// =======================
-// DB PŘIPOJENÍ (Railway)
-// =======================
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
-  dialect: "postgres",
-  logging: false,
-});
+// 🔌 DB + sync
+(async () => {
+  try {
+    await sequelize.authenticate();
+    console.log("✅ DB připojena");
 
-// =======================
-// USER MODEL
-// =======================
-const User = sequelize.define("User", {
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  email: {
-    type: DataTypes.STRING,
-    unique: true,
-    allowNull: false,
-  },
-  password: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  role: {
-    type: DataTypes.ENUM("zadavatel", "zhotovitel"),
-    allowNull: false,
-  },
-});
+    await sequelize.sync({ alter: true });
+    console.log("✅ Modely synchronizovány");
+  } catch (err) {
+    console.error("❌ DB chyba:", err);
+  }
+})();
 
-// =======================
-// TEST ENDPOINT
-// =======================
+// 🟢 healthcheck
 app.get("/", (req, res) => {
   res.json({ status: "API OK" });
 });
 
-// =======================
-// REGISTER
-// =======================
+// 🧑‍💻 registrace uživatele
 app.post("/api/users/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -57,23 +35,32 @@ app.post("/api/users/register", async (req, res) => {
       return res.status(400).json({ error: "Chybí povinná pole" });
     }
 
-    const exists = await User.findOne({ where: { email } });
-    if (exists) {
-      return res.status(400).json({ error: "Uživatel už existuje" });
+    if (!["zadavatel", "zhotovitel"].includes(role)) {
+      return res.status(400).json({ error: "Neplatná role" });
     }
 
-    const hashed = await bcrypt.hash(password, 10);
+    const exists = await User.findOne({ where: { email } });
+    if (exists) {
+      return res.status(400).json({ error: "Email již existuje" });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       name,
       email,
-      password: hashed,
+      password: hash,
       role,
     });
 
     res.json({
       message: "Uživatel vytvořen",
-      id: user.id,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (err) {
     console.error("REGISTER ERROR:", err);
@@ -81,22 +68,8 @@ app.post("/api/users/register", async (req, res) => {
   }
 });
 
-// =======================
-// START SERVER + SYNC
-// =======================
+// 🚀 start
 const PORT = process.env.PORT || 5000;
-
-sequelize
-  .authenticate()
-  .then(() => {
-    console.log("✅ DB připojena");
-    return sequelize.sync(); // ⬅️ vytvoří tabulky
-  })
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`🚀 Server běží na portu ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error("❌ DB chyba:", err);
-  });
+app.listen(PORT, () =>
+  console.log(`🚀 Server běží na portu ${PORT}`)
+);
