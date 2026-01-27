@@ -7,16 +7,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ======================
-// TEST
-// ======================
 app.get("/", (req, res) => {
   res.json({ status: "API OK" });
 });
 
-// ======================
-// REGISTRACE UŽIVATELE
-// ======================
+// registrace
 app.post("/api/users/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -39,79 +34,29 @@ app.post("/api/users/register", async (req, res) => {
       role,
     });
 
-    res.json({
-      message: "Uživatel vytvořen",
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    });
+    res.json({ message: "Uživatel vytvořen", user });
   } catch (err) {
-    console.error("REGISTER ERROR:", err);
+    console.error(err);
     res.status(500).json({ error: "Chyba serveru" });
   }
 });
 
-// ======================
-// VYTVOŘENÍ ZAKÁZKY
-// ======================
+// vytvoření zakázky
 app.post("/api/jobs", async (req, res) => {
   try {
-    const {
-      title,
-      category,
-      date,
-      timeFrom,
-      timeTo,
-      location,
-      reward,
-      userId,
-    } = req.body;
-
-    if (
-      !title ||
-      !category ||
-      !date ||
-      timeFrom == null ||
-      timeTo == null ||
-      !location ||
-      !reward ||
-      !userId
-    ) {
-      return res.status(400).json({ error: "Chybí povinná pole" });
-    }
-
-    const job = await Job.create({
-      title,
-      category,
-      date,
-      timeFrom,
-      timeTo,
-      location,
-      reward,
-      userId,
-    });
-
-    res.json({
-      message: "Zakázka vytvořena",
-      job,
-    });
+    const job = await Job.create(req.body);
+    res.json({ message: "Zakázka vytvořena", job });
   } catch (err) {
-    console.error("JOB ERROR:", err);
+    console.error(err);
     res.status(500).json({ error: "Chyba serveru" });
   }
 });
 
-// ======================
-// START SERVERU
-// ======================
 const PORT = process.env.PORT || 5000;
 
-sequelize.sync().then(() => {
-  console.log("✅ DB připojena a synchronizována");
-  app.listen(PORT, () => {
-    console.log(`🚀 Server běží na portu ${PORT}`);
-  });
+sequelize.sync({ alter: true }).then(() => {
+  console.log("✅ DB synchronizována");
+  app.listen(PORT, () =>
+    console.log(`🚀 Server běží na portu ${PORT}`)
+  );
 });
