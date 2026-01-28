@@ -43,12 +43,24 @@ const Job = sequelize.define("Job", {
   status: { type: DataTypes.STRING, defaultValue: "cekani" },
 });
 
-const JobResponse = sequelize.define("JobResponse", {
-  status: {
-    type: DataTypes.ENUM("cekani", "domluveno", "zamítnuto"),
-    defaultValue: "cekani",
+/* 🔒 JOB RESPONSE – UNIKÁTNÍ (jobId + workerId) */
+const JobResponse = sequelize.define(
+  "JobResponse",
+  {
+    status: {
+      type: DataTypes.ENUM("cekani", "domluveno", "zamítnuto"),
+      defaultValue: "cekani",
+    },
   },
-});
+  {
+    indexes: [
+      {
+        unique: true,
+        fields: ["jobId", "workerId"],
+      },
+    ],
+  }
+);
 
 const JobRating = sequelize.define("JobRating", {
   rating: {
@@ -174,30 +186,24 @@ app.post(
   requireUser,
   requireRole("zhotovitel"),
   async (req, res) => {
-    const existing = await JobResponse.findOne({
-      where: {
+    try {
+      const response = await JobResponse.create({
         jobId: req.params.jobId,
         workerId: req.user.id,
-      },
-    });
+      });
 
-    if (existing) {
+      res.json(response);
+    } catch (err) {
+      // zachytí DB unikátní constraint
       return res
         .status(400)
         .json({ error: "Na tuto zakázku už jste reagoval" });
     }
-
-    const response = await JobResponse.create({
-      jobId: req.params.jobId,
-      workerId: req.user.id,
-    });
-
-    res.json(response);
   }
 );
 
 /* =========================
-   ✅ DASHBOARD ZHOTOVITELE – FIX DUPLICIT
+   DASHBOARD ZHOTOVITELE – BEZ DUPLICIT
 ========================= */
 
 app.get(
@@ -205,31 +211,19 @@ app.get(
   requireUser,
   requireRole("zhotovitel"),
   async (req, res) => {
-    const jobs = await Job.findAll({
-      include: [
-        {
-          model: JobResponse,
-          where: { workerId: req.user.id },
-          required: true,
-        },
-        {
-          model: JobRating,
-        },
-      ],
+    const responses = await JobResponse.findAll({
+      where: { workerId: req.user.id },
+      include: [{ model: Job, include: [JobRating] }],
       order: [["createdAt", "DESC"]],
     });
 
-    const data = jobs.map((job) => {
-      const myResponse = job.JobResponses[0];
-
-      return {
-        id: job.id,
-        title: job.title,
-        status: job.status,
-        myResponseStatus: myResponse.status,
-        rating: job.JobRating ? job.JobRating.rating : null,
-      };
-    });
+    const data = responses.map((r) => ({
+      id: r.Job.id,
+      title: r.Job.title,
+      status: r.Job.status,
+      myResponseStatus: r.status,
+      rating: r.Job.JobRating ? r.Job.JobRating.rating : null,
+    }));
 
     res.json(data);
   }
