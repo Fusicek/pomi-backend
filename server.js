@@ -88,7 +88,7 @@ User.hasMany(Job, { foreignKey: "customerId" });
 Job.belongsTo(User, { foreignKey: "customerId" });
 
 /* =========================
-   ROUTES – HEALTH
+   HEALTH CHECK
 ========================= */
 
 app.get("/", (req, res) => {
@@ -99,6 +99,7 @@ app.get("/", (req, res) => {
    USERS
 ========================= */
 
+// REGISTER
 app.post("/api/users/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -107,18 +108,56 @@ app.post("/api/users/register", async (req, res) => {
       return res.status(400).json({ error: "Chybí povinná pole" });
     }
 
-    const hashed = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       name,
       email,
-      password: hashed,
+      password: hashedPassword,
       role,
     });
 
-    res.json({ id: user.id, email: user.email });
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
   } catch (err) {
     console.error("REGISTER ERROR:", err);
+    res.status(500).json({ error: "Chyba serveru" });
+  }
+});
+
+// LOGIN  ✅ NOVÉ
+app.post("/api/users/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Chybí email nebo heslo" });
+    }
+
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      return res.status(401).json({ error: "Neplatné přihlašovací údaje" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ error: "Neplatné přihlašovací údaje" });
+    }
+
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
     res.status(500).json({ error: "Chyba serveru" });
   }
 });
@@ -127,7 +166,7 @@ app.post("/api/users/register", async (req, res) => {
    JOBS
 ========================= */
 
-/* CREATE JOB */
+// CREATE JOB
 app.post("/api/jobs", async (req, res) => {
   try {
     const job = await Job.create(req.body);
@@ -138,18 +177,18 @@ app.post("/api/jobs", async (req, res) => {
   }
 });
 
-/* GET ALL JOBS */
+// GET ALL JOBS
 app.get("/api/jobs", async (req, res) => {
   try {
     const jobs = await Job.findAll();
     res.json(jobs);
   } catch (err) {
-    console.error(err);
+    console.error("JOB GET ERROR:", err);
     res.status(500).json({ error: "Chyba serveru" });
   }
 });
 
-/* GET JOBS BY CUSTOMER */
+// GET JOBS BY CUSTOMER
 app.get("/api/jobs/my", async (req, res) => {
   try {
     const { customerId } = req.query;
@@ -164,20 +203,20 @@ app.get("/api/jobs/my", async (req, res) => {
 
     res.json(jobs);
   } catch (err) {
-    console.error(err);
+    console.error("JOB MY ERROR:", err);
     res.status(500).json({ error: "Chyba serveru" });
   }
 });
 
 /* =========================
-   START
+   START SERVER
 ========================= */
 
 const PORT = process.env.PORT || 5000;
 
 sequelize.sync().then(() => {
   console.log("✅ DB synchronizována");
-  app.listen(PORT, () =>
-    console.log(`🚀 Server běží na portu ${PORT}`)
-  );
+  app.listen(PORT, () => {
+    console.log(`🚀 Server běží na portu ${PORT}`);
+  });
 });
