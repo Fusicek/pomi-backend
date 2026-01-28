@@ -197,31 +197,7 @@ app.post(
 );
 
 /* =========================
-   REAKCE NA ZAKÁZKU (ZADAVATEL)
-========================= */
-
-app.get(
-  "/api/jobs/:jobId/responses",
-  requireUser,
-  requireRole("zadavatel"),
-  async (req, res) => {
-    const job = await Job.findByPk(req.params.jobId);
-
-    if (!job || job.customerId !== req.user.id) {
-      return res.status(403).json({ error: "Cizí zakázka" });
-    }
-
-    const responses = await JobResponse.findAll({
-      where: { jobId: job.id },
-      include: [{ model: User, attributes: ["id", "name", "email"] }],
-    });
-
-    res.json(responses);
-  }
-);
-
-/* =========================
-   CONFIRM ZAKÁZKY
+   CONFIRM – OPRAVENÝ FLOW
 ========================= */
 
 app.post(
@@ -236,16 +212,26 @@ app.post(
       return res.status(403).json({ error: "Cizí zakázka" });
     }
 
+    if (job.status !== "cekani") {
+      return res.status(400).json({ error: "Zakázka už není k potvrzení" });
+    }
+
+    const response = await JobResponse.findOne({
+      where: { jobId: job.id, workerId },
+    });
+
+    if (!response) {
+      return res
+        .status(400)
+        .json({ error: "Zhotovitel na zakázku nereagoval" });
+    }
+
     await JobResponse.update(
       { status: "zamítnuto" },
       { where: { jobId: job.id } }
     );
 
-    await JobResponse.update(
-      { status: "domluveno" },
-      { where: { jobId: job.id, workerId } }
-    );
-
+    await response.update({ status: "domluveno" });
     await job.update({ status: "domluveno" });
 
     res.json({ success: true });
@@ -280,12 +266,8 @@ app.post(
     const { rating, comment } = req.body;
     const job = await Job.findByPk(req.params.jobId);
 
-    const response = await JobResponse.findOne({
-      where: { jobId: job.id, status: "domluveno" },
-    });
-
-    if (!response) {
-      return res.status(400).json({ error: "Zakázka není domluvena" });
+    if (!job || job.status !== "hotovo") {
+      return res.status(400).json({ error: "Zakázka není hotová" });
     }
 
     const existing = await JobRating.findOne({
@@ -295,6 +277,10 @@ app.post(
     if (existing) {
       return res.status(400).json({ error: "Zakázka už byla hodnocena" });
     }
+
+    const response = await JobResponse.findOne({
+      where: { jobId: job.id, status: "domluveno" },
+    });
 
     const jobRating = await JobRating.create({
       jobId: job.id,
