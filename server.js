@@ -58,6 +58,21 @@ const JobRating = sequelize.define("JobRating", {
   },
   comment: DataTypes.TEXT,
 });
+const Notification = sequelize.define("Notification", {
+  type: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  message: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  isRead: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+});
+
 
 /* =========================
    RELATIONS
