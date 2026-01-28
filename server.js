@@ -595,6 +595,25 @@ app.get("/api/notifications", requireUser, async (req, res) => {
   res.json(notifications);
 });
 /* =========================
+   GET UNREAD NOTIFICATIONS COUNT 🆕
+========================= */
+
+app.get(
+  "/api/notifications/unread/count",
+  requireUser,
+  async (req, res) => {
+    const count = await Notification.count({
+      where: {
+        userId: req.user.id,
+        isRead: false,
+      },
+    });
+
+    res.json({ unread: count });
+  }
+);
+
+/* =========================
    MARK NOTIFICATION AS READ 🆕
 ========================= */
 
