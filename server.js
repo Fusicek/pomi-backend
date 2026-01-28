@@ -43,23 +43,12 @@ const Job = sequelize.define("Job", {
   status: { type: DataTypes.STRING, defaultValue: "cekani" },
 });
 
-const JobResponse = sequelize.define(
-  "JobResponse",
-  {
-    status: {
-      type: DataTypes.ENUM("cekani", "domluveno", "zamítnuto"),
-      defaultValue: "cekani",
-    },
+const JobResponse = sequelize.define("JobResponse", {
+  status: {
+    type: DataTypes.ENUM("cekani", "domluveno", "zamítnuto"),
+    defaultValue: "cekani",
   },
-  {
-    indexes: [
-      {
-        unique: true,
-        fields: ["jobId", "workerId"],
-      },
-    ],
-  }
-);
+});
 
 const JobRating = sequelize.define("JobRating", {
   rating: {
@@ -109,20 +98,6 @@ const requireRole = (role) => (req, res, next) => {
   }
   next();
 };
-
-/* =========================
-   CLEANUP DUPLICIT (VARIANTA A)
-========================= */
-
-async function cleanupJobResponses() {
-  await sequelize.query(`
-    DELETE FROM "JobResponses" a
-    USING "JobResponses" b
-    WHERE a.id > b.id
-      AND a."jobId" = b."jobId"
-      AND a."workerId" = b."workerId";
-  `);
-}
 
 /* =========================
    USERS
@@ -191,7 +166,7 @@ app.get(
 );
 
 /* =========================
-   JOB RESPONSES
+   JOB RESPONSES (VARIANTA A)
 ========================= */
 
 app.post(
@@ -199,15 +174,25 @@ app.post(
   requireUser,
   requireRole("zhotovitel"),
   async (req, res) => {
-    try {
-      const response = await JobResponse.create({
+    const existing = await JobResponse.findOne({
+      where: {
         jobId: req.params.jobId,
         workerId: req.user.id,
-      });
-      res.json(response);
-    } catch {
-      res.status(400).json({ error: "Na tuto zakázku už jste reagoval" });
+      },
+    });
+
+    if (existing) {
+      return res
+        .status(400)
+        .json({ error: "Na tuto zakázku už jste reagoval" });
     }
+
+    const response = await JobResponse.create({
+      jobId: req.params.jobId,
+      workerId: req.user.id,
+    });
+
+    res.json(response);
   }
 );
 
@@ -244,9 +229,7 @@ app.get(
 
 const PORT = process.env.PORT || 5000;
 
-sequelize.sync().then(async () => {
-  await cleanupJobResponses();
-
+sequelize.sync().then(() => {
   app.listen(PORT, () => {
     console.log(`🚀 Server běží na portu ${PORT}`);
   });
