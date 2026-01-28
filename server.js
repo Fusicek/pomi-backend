@@ -193,6 +193,32 @@ app.post(
   }
 );
 
+/* ✅ CHYBĚJÍCÍ ENDPOINT – ZADAVATEL VIDÍ REAKCE */
+app.get(
+  "/api/jobs/:jobId/responses",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    try {
+      const job = await Job.findByPk(req.params.jobId);
+
+      if (!job || job.customerId !== req.user.id) {
+        return res.status(403).json({ error: "Cizí zakázka" });
+      }
+
+      const responses = await JobResponse.findAll({
+        where: { jobId: job.id },
+        include: [{ model: User, attributes: ["id", "name", "email"] }],
+      });
+
+      res.json(responses);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Chyba serveru" });
+    }
+  }
+);
+
 /* =========================
    🆕 FINISH + RATING
 ========================= */
