@@ -139,180 +139,14 @@ app.get("/api/jobs", async (req, res) => {
 });
 
 /* =========================
-   AVAILABLE JOBS
+   🆕 JOB DETAIL (UNIVERZÁLNÍ)
 ========================= */
 
 app.get(
-  "/api/jobs/available",
+  "/api/jobs/:jobId/detail",
   requireUser,
-  requireRole("zhotovitel"),
   async (req, res) => {
-    const responded = await JobResponse.findAll({
-      where: { workerId: req.user.id },
-      attributes: ["jobId"],
-    });
-
-    const ids = responded.map((r) => r.jobId);
-
-    const jobs = await Job.findAll({
-      where: {
-        status: "cekani",
-        id: { [Op.notIn]: ids.length ? ids : [0] },
-      },
-    });
-
-    res.json(jobs);
-  }
-);
-
-/* =========================
-   JOB RESPONSES – VARIANTA A + 🔒 LOCK
-========================= */
-
-app.post(
-  "/api/jobs/:jobId/respond",
-  requireUser,
-  requireRole("zhotovitel"),
-  async (req, res) => {
-    const job = await Job.findByPk(req.params.jobId);
-
-    if (!job || job.status !== "cekani") {
-      return res
-        .status(400)
-        .json({ error: "Na tuto zakázku už nelze reagovat" });
-    }
-
-    const existing = await JobResponse.findOne({
-      where: {
-        jobId: job.id,
-        workerId: req.user.id,
-      },
-    });
-
-    if (existing) {
-      return res
-        .status(400)
-        .json({ error: "Na tuto zakázku už jste reagoval" });
-    }
-
-    const response = await JobResponse.create({
-      jobId: job.id,
-      workerId: req.user.id,
-    });
-
-    res.json(response);
-  }
-);
-
-/* =========================
-   CONFIRM – OPRAVENÝ FLOW
-========================= */
-
-app.post(
-  "/api/jobs/:jobId/confirm",
-  requireUser,
-  requireRole("zadavatel"),
-  async (req, res) => {
-    const { workerId } = req.body;
-
-    const job = await Job.findByPk(req.params.jobId);
-    if (!job || job.customerId !== req.user.id) {
-      return res.status(403).json({ error: "Cizí zakázka" });
-    }
-
-    if (job.status !== "cekani") {
-      return res.status(400).json({ error: "Zakázka už není k potvrzení" });
-    }
-
-    const response = await JobResponse.findOne({
-      where: { jobId: job.id, workerId },
-    });
-
-    if (!response) {
-      return res
-        .status(400)
-        .json({ error: "Zhotovitel na zakázku nereagoval" });
-    }
-
-    await JobResponse.update(
-      { status: "zamítnuto" },
-      { where: { jobId: job.id } }
-    );
-
-    await response.update({ status: "domluveno" });
-    await job.update({ status: "domluveno" });
-
-    res.json({ success: true });
-  }
-);
-
-/* =========================
-   FINISH + RATE
-========================= */
-
-app.post(
-  "/api/jobs/:jobId/finish",
-  requireUser,
-  requireRole("zadavatel"),
-  async (req, res) => {
-    const job = await Job.findByPk(req.params.jobId);
-
-    if (!job || job.customerId !== req.user.id || job.status !== "domluveno") {
-      return res.status(400).json({ error: "Nelze ukončit zakázku" });
-    }
-
-    await job.update({ status: "hotovo" });
-    res.json({ success: true });
-  }
-);
-
-app.post(
-  "/api/jobs/:jobId/rate",
-  requireUser,
-  requireRole("zadavatel"),
-  async (req, res) => {
-    const { rating, comment } = req.body;
-    const job = await Job.findByPk(req.params.jobId);
-
-    if (!job || job.status !== "hotovo") {
-      return res.status(400).json({ error: "Zakázka není hotová" });
-    }
-
-    const existing = await JobRating.findOne({
-      where: { jobId: job.id },
-    });
-
-    if (existing) {
-      return res.status(400).json({ error: "Zakázka už byla hodnocena" });
-    }
-
-    const response = await JobResponse.findOne({
-      where: { jobId: job.id, status: "domluveno" },
-    });
-
-    const jobRating = await JobRating.create({
-      jobId: job.id,
-      customerId: req.user.id,
-      workerId: response.workerId,
-      rating,
-      comment,
-    });
-
-    res.json(jobRating);
-  }
-);
-
-/* =========================
-   DASHBOARDS
-========================= */
-
-app.get(
-  "/api/dashboard/customer",
-  requireUser,
-  requireRole("zadavatel"),
-  async (req, res) => {
-    const jobs = await Job.findAll({
-      where: { customerId: req.user.id },
+    const job = await Job.findByPk(req.params.jobId, {
       include: [
         {
           model: JobResponse,
@@ -320,50 +154,64 @@ app.get(
         },
         { model: JobRating },
       ],
-      order: [["createdAt", "DESC"]],
     });
 
-    const data = jobs.map((job) => {
-      const confirmed = job.JobResponses.find(
-        (r) => r.status === "domluveno"
+    if (!job) {
+      return res.status(404).json({ error: "Zakázka neexistuje" });
+    }
+
+    // 🔹 ZHOTOVITEL
+    if (req.user.role === "zhotovitel") {
+      const myResponse = job.JobResponses.find(
+        (r) => r.workerId === req.user.id
       );
 
-      return {
+      return res.json({
         id: job.id,
         title: job.title,
+        description: job.description,
+        reward: job.reward,
         status: job.status,
-        responsesCount: job.JobResponses.length,
-        selectedWorker: confirmed
-          ? { id: confirmed.User.id, name: confirmed.User.name }
-          : null,
-        canRate: job.status === "hotovo" && !job.JobRating,
-      };
+        myResponseStatus: myResponse ? myResponse.status : null,
+        canRespond:
+          job.status === "cekani" && !myResponse,
+        rating: job.JobRating ? job.JobRating.rating : null,
+      });
+    }
+
+    // 🔹 ZADAVATEL
+    if (job.customerId !== req.user.id) {
+      return res.status(403).json({ error: "Cizí zakázka" });
+    }
+
+    const confirmed = job.JobResponses.find(
+      (r) => r.status === "domluveno"
+    );
+
+    res.json({
+      id: job.id,
+      title: job.title,
+      description: job.description,
+      reward: job.reward,
+      status: job.status,
+      responses: job.JobResponses.map((r) => ({
+        id: r.id,
+        status: r.status,
+        worker: {
+          id: r.User.id,
+          name: r.User.name,
+        },
+      })),
+      selectedWorker: confirmed
+        ? {
+            id: confirmed.User.id,
+            name: confirmed.User.name,
+          }
+        : null,
+      canConfirm: job.status === "cekani",
+      canFinish: job.status === "domluveno",
+      canRate: job.status === "hotovo" && !job.JobRating,
     });
-
-    res.json(data);
-  }
-);
-
-app.get(
-  "/api/dashboard/worker",
-  requireUser,
-  requireRole("zhotovitel"),
-  async (req, res) => {
-    const responses = await JobResponse.findAll({
-      where: { workerId: req.user.id },
-      include: [{ model: Job, include: [JobRating] }],
-      order: [["createdAt", "DESC"]],
-    });
-
-    const data = responses.map((r) => ({
-      id: r.Job.id,
-      title: r.Job.title,
-      status: r.Job.status,
-      myResponseStatus: r.status,
-      rating: r.Job.JobRating ? r.Job.JobRating.rating : null,
-    }));
-
-    res.json(data);
   }
 );
 
