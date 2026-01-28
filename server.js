@@ -293,7 +293,7 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
 });
 
 /* =========================
-   CONFIRM JOB (ZADAVATEL) ✅ DOPLNĚNO
+   CONFIRM JOB (ZADAVATEL)
 ========================= */
 
 app.post(
@@ -336,6 +336,80 @@ app.post(
     await job.update({ status: "domluveno" });
 
     res.json({ success: true });
+  }
+);
+
+/* =========================
+   FINISH JOB (ZADAVATEL) 🆕
+========================= */
+
+app.post(
+  "/api/jobs/:jobId/finish",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    const job = await Job.findByPk(req.params.jobId);
+
+    if (!job || job.customerId !== req.user.id) {
+      return res.status(403).json({ error: "Cizí zakázka" });
+    }
+
+    if (job.status !== "domluveno") {
+      return res.status(400).json({ error: "Zakázku nelze ukončit" });
+    }
+
+    await job.update({ status: "hotovo" });
+
+    res.json({ success: true });
+  }
+);
+
+/* =========================
+   RATE JOB (ZADAVATEL) 🆕
+========================= */
+
+app.post(
+  "/api/jobs/:jobId/rate",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    const { rating, comment } = req.body;
+
+    if (!rating) {
+      return res.status(400).json({ error: "Chybí hodnocení" });
+    }
+
+    const job = await Job.findByPk(req.params.jobId);
+
+    if (!job || job.customerId !== req.user.id) {
+      return res.status(403).json({ error: "Cizí zakázka" });
+    }
+
+    if (job.status !== "hotovo") {
+      return res.status(400).json({ error: "Zakázka není hotová" });
+    }
+
+    const existing = await JobRating.findOne({
+      where: { jobId: job.id },
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: "Zakázka už byla hodnocena" });
+    }
+
+    const response = await JobResponse.findOne({
+      where: { jobId: job.id, status: "domluveno" },
+    });
+
+    const jobRating = await JobRating.create({
+      jobId: job.id,
+      customerId: req.user.id,
+      workerId: response.workerId,
+      rating,
+      comment,
+    });
+
+    res.json(jobRating);
   }
 );
 
