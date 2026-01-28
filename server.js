@@ -204,7 +204,7 @@ app.post(
 );
 
 /* =========================
-   🔽 JOB RESPOND (ZHOTOVITEL) – DOPLNĚNO
+   JOB RESPOND (ZHOTOVITEL)
 ========================= */
 
 app.post(
@@ -219,10 +219,7 @@ app.post(
     }
 
     const existing = await JobResponse.findOne({
-      where: {
-        jobId: job.id,
-        workerId: req.user.id,
-      },
+      where: { jobId: job.id, workerId: req.user.id },
     });
 
     if (existing) {
@@ -245,10 +242,7 @@ app.post(
 app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
   const job = await Job.findByPk(req.params.jobId, {
     include: [
-      {
-        model: JobResponse,
-        include: [{ model: User, attributes: ["id", "name"] }],
-      },
+      { model: JobResponse, include: [{ model: User, attributes: ["id", "name"] }] },
       { model: JobRating },
     ],
   });
@@ -297,6 +291,53 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
     canRate: job.status === "hotovo" && !job.JobRating,
   });
 });
+
+/* =========================
+   CONFIRM JOB (ZADAVATEL) ✅ DOPLNĚNO
+========================= */
+
+app.post(
+  "/api/jobs/:jobId/confirm",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    const { workerId } = req.body;
+
+    if (!workerId) {
+      return res.status(400).json({ error: "Chybí workerId" });
+    }
+
+    const job = await Job.findByPk(req.params.jobId);
+
+    if (!job || job.customerId !== req.user.id) {
+      return res.status(403).json({ error: "Cizí zakázka" });
+    }
+
+    if (job.status !== "cekani") {
+      return res.status(400).json({ error: "Zakázku nelze potvrdit" });
+    }
+
+    const response = await JobResponse.findOne({
+      where: { jobId: job.id, workerId },
+    });
+
+    if (!response) {
+      return res.status(400).json({
+        error: "Zhotovitel na zakázku nereagoval",
+      });
+    }
+
+    await JobResponse.update(
+      { status: "zamítnuto" },
+      { where: { jobId: job.id } }
+    );
+
+    await response.update({ status: "domluveno" });
+    await job.update({ status: "domluveno" });
+
+    res.json({ success: true });
+  }
+);
 
 /* =========================
    START
