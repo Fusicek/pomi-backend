@@ -155,13 +155,65 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 /* =========================
+   🆕 CREATE JOB (ZADAVATEL)
+========================= */
+
+app.post(
+  "/api/jobs",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    const {
+      title,
+      category,
+      description,
+      reward,
+      date,
+      timeFrom,
+      timeTo,
+      location,
+    } = req.body;
+
+    if (
+      !title ||
+      !category ||
+      !description ||
+      !reward ||
+      !date ||
+      timeFrom == null ||
+      timeTo == null ||
+      !location
+    ) {
+      return res.status(400).json({ error: "Chybí údaje" });
+    }
+
+    const job = await Job.create({
+      title,
+      category,
+      description,
+      reward,
+      date,
+      timeFrom,
+      timeTo,
+      location,
+      customerId: req.user.id,
+    });
+
+    res.json(job);
+  }
+);
+
+/* =========================
    JOB DETAIL (JEDINÝ ZDROJ PRAVDY)
 ========================= */
 
 app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
   const job = await Job.findByPk(req.params.jobId, {
     include: [
-      { model: JobResponse, include: [{ model: User, attributes: ["id", "name"] }] },
+      {
+        model: JobResponse,
+        include: [{ model: User, attributes: ["id", "name"] }],
+      },
       { model: JobRating },
     ],
   });
