@@ -1,5 +1,5 @@
 const express = require("express");
-const { Sequelize, DataTypes } = require("sequelize");
+const { Sequelize, DataTypes, Op } = require("sequelize");
 const bcrypt = require("bcrypt");
 const cors = require("cors");
 
@@ -131,7 +131,8 @@ app.post("/api/users/register", async (req, res) => {
   res.json({ id: user.id, name, email, role });
 });
 
-/* PROFIL UŽIVATELE + HODNOCENÍ */
+/* PROFIL + HODNOCENÍ */
+
 app.get("/api/users/:id/profile", async (req, res) => {
   const user = await User.findByPk(req.params.id, {
     attributes: ["id", "name", "role"],
@@ -179,6 +180,38 @@ app.post(
 app.get("/api/jobs", async (req, res) => {
   res.json(await Job.findAll());
 });
+
+/* =========================
+   🆕 AVAILABLE JOBS (VARIANTA B)
+========================= */
+
+app.get(
+  "/api/jobs/available",
+  requireUser,
+  requireRole("zhotovitel"),
+  async (req, res) => {
+    try {
+      const respondedJobs = await JobResponse.findAll({
+        where: { workerId: req.user.id },
+        attributes: ["jobId"],
+      });
+
+      const respondedJobIds = respondedJobs.map((r) => r.jobId);
+
+      const jobs = await Job.findAll({
+        where: {
+          id: { [Op.notIn]: respondedJobIds.length ? respondedJobIds : [0] },
+          status: "cekani",
+        },
+      });
+
+      res.json(jobs);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Chyba serveru" });
+    }
+  }
+);
 
 /* =========================
    JOB RESPONSES
@@ -236,26 +269,6 @@ app.get(
     });
 
     res.json(responses);
-  }
-);
-
-/* =========================
-   🆕 WORKER JOBS
-========================= */
-
-app.get(
-  "/api/workers/:id/jobs",
-  requireUser,
-  async (req, res) => {
-    const workerId = req.params.id;
-
-    const responses = await JobResponse.findAll({
-      where: { workerId },
-      include: [{ model: Job }],
-    });
-
-    const jobs = responses.map((r) => r.Job);
-    res.json(jobs);
   }
 );
 
