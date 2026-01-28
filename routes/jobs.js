@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { Job } = require("../models");
 
-// vytvoření zakázky
+// CREATE JOB
 router.post("/", async (req, res) => {
   try {
     const job = await Job.create(req.body);
@@ -13,7 +13,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// všechny zakázky
+// GET ALL JOBS
 router.get("/", async (req, res) => {
   try {
     const jobs = await Job.findAll();
@@ -24,7 +24,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// zakázky konkrétního zadavatele
+// GET JOBS BY CUSTOMER
 router.get("/my", async (req, res) => {
   const { customerId } = req.query;
 
@@ -34,7 +34,7 @@ router.get("/my", async (req, res) => {
 
   try {
     const jobs = await Job.findAll({
-      where: { customerId }
+      where: { customerId },
     });
     res.json(jobs);
   } catch (err) {
@@ -44,3 +44,4 @@ router.get("/my", async (req, res) => {
 });
 
 module.exports = router;
+
