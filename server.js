@@ -1,5 +1,5 @@
 const express = require("express");
-const { Sequelize, DataTypes, Op } = require("sequelize");
+const { Sequelize, DataTypes } = require("sequelize");
 const bcrypt = require("bcrypt");
 const cors = require("cors");
 
@@ -56,9 +56,7 @@ const JobRating = sequelize.define("JobRating", {
     allowNull: false,
     validate: { min: 1, max: 5 },
   },
-  comment: {
-    type: DataTypes.TEXT,
-  },
+  comment: DataTypes.TEXT,
 });
 
 /* =========================
@@ -78,7 +76,7 @@ Job.hasOne(JobRating, { foreignKey: "jobId" });
 JobRating.belongsTo(Job, { foreignKey: "jobId" });
 
 /* =========================
-   AUTH
+   AUTH MIDDLEWARE
 ========================= */
 
 const requireUser = async (req, res, next) => {
@@ -98,6 +96,30 @@ const requireRole = (role) => (req, res, next) => {
   }
   next();
 };
+
+/* =========================
+   AUTH – LOGIN
+========================= */
+
+app.post("/api/auth/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ where: { email } });
+  if (!user) {
+    return res.status(400).json({ error: "Neplatný email nebo heslo" });
+  }
+
+  const ok = await bcrypt.compare(password, user.password);
+  if (!ok) {
+    return res.status(400).json({ error: "Neplatný email nebo heslo" });
+  }
+
+  res.json({
+    id: user.id,
+    name: user.name,
+    role: user.role,
+  });
+});
 
 /* =========================
    JOB DETAIL (JEDINÝ ZDROJ PRAVDY)
@@ -157,7 +179,7 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
 });
 
 /* =========================
-   AKCE
+   AKCE (respond / confirm / finish / rate)
 ========================= */
 
 app.post("/api/jobs/:jobId/respond", requireUser, requireRole("zhotovitel"), async (req, res) => {
@@ -218,12 +240,12 @@ app.post("/api/jobs/:jobId/rate", requireUser, requireRole("zadavatel"), async (
     return res.status(400).json({ error: "Nelze hodnotit" });
   }
 
+  const existing = await JobRating.findOne({ where: { jobId: job.id } });
+  if (existing) return res.status(400).json({ error: "Už hodnoceno" });
+
   const response = await JobResponse.findOne({
     where: { jobId: job.id, status: "domluveno" },
   });
-
-  const existing = await JobRating.findOne({ where: { jobId: job.id } });
-  if (existing) return res.status(400).json({ error: "Už hodnoceno" });
 
   const jobRating = await JobRating.create({
     jobId: job.id,
