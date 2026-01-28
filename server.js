@@ -77,12 +77,6 @@ JobResponse.belongsTo(Job, { foreignKey: "jobId" });
 Job.hasOne(JobRating, { foreignKey: "jobId" });
 JobRating.belongsTo(Job, { foreignKey: "jobId" });
 
-User.hasMany(JobRating, { foreignKey: "customerId", as: "givenRatings" });
-User.hasMany(JobRating, { foreignKey: "workerId", as: "receivedRatings" });
-
-JobRating.belongsTo(User, { foreignKey: "customerId", as: "customer" });
-JobRating.belongsTo(User, { foreignKey: "workerId", as: "worker" });
-
 /* =========================
    AUTH
 ========================= */
@@ -106,14 +100,6 @@ const requireRole = (role) => (req, res, next) => {
 };
 
 /* =========================
-   HEALTH
-========================= */
-
-app.get("/", (req, res) => {
-  res.json({ status: "API OK" });
-});
-
-/* =========================
    USERS
 ========================= */
 
@@ -129,37 +115,6 @@ app.post("/api/users/register", async (req, res) => {
   });
 
   res.json({ id: user.id, name, email, role });
-});
-
-/* =========================
-   PROFILE + RATING
-========================= */
-
-app.get("/api/users/:id/profile", async (req, res) => {
-  const user = await User.findByPk(req.params.id, {
-    attributes: ["id", "name", "role"],
-  });
-
-  if (!user) {
-    return res.status(404).json({ error: "Uživatel neexistuje" });
-  }
-
-  const stats = await JobRating.findAll({
-    where: { workerId: user.id },
-    attributes: [
-      [sequelize.fn("AVG", sequelize.col("rating")), "avgRating"],
-      [sequelize.fn("COUNT", sequelize.col("id")), "count"],
-    ],
-    raw: true,
-  });
-
-  res.json({
-    ...user.toJSON(),
-    rating: stats[0].avgRating
-      ? Number(stats[0].avgRating).toFixed(2)
-      : null,
-    ratingCount: Number(stats[0].count),
-  });
 });
 
 /* =========================
@@ -241,50 +196,8 @@ app.post(
   }
 );
 
-app.post(
-  "/api/jobs/:jobId/confirm",
-  requireUser,
-  requireRole("zadavatel"),
-  async (req, res) => {
-    const { workerId } = req.body;
-    const job = await Job.findByPk(req.params.jobId);
-
-    await JobResponse.update(
-      { status: "zamítnuto" },
-      { where: { jobId: job.id } }
-    );
-
-    await JobResponse.update(
-      { status: "domluveno" },
-      { where: { jobId: job.id, workerId } }
-    );
-
-    await job.update({ status: "domluveno" });
-    res.json({ success: true });
-  }
-);
-
-app.get(
-  "/api/jobs/:jobId/responses",
-  requireUser,
-  requireRole("zadavatel"),
-  async (req, res) => {
-    const job = await Job.findByPk(req.params.jobId);
-    if (!job || job.customerId !== req.user.id) {
-      return res.status(403).json({ error: "Cizí zakázka" });
-    }
-
-    const responses = await JobResponse.findAll({
-      where: { jobId: job.id },
-      include: [{ model: User, attributes: ["id", "name", "email"] }],
-    });
-
-    res.json(responses);
-  }
-);
-
 /* =========================
-   DASHBOARD ZHOTOVITELE
+   ✅ DASHBOARD ZHOTOVITELE – FIX DUPLICIT
 ========================= */
 
 app.get(
@@ -292,76 +205,33 @@ app.get(
   requireUser,
   requireRole("zhotovitel"),
   async (req, res) => {
-    const responses = await JobResponse.findAll({
-      where: { workerId: req.user.id },
-      include: [{ model: Job, include: [{ model: JobRating }] }],
+    const jobs = await Job.findAll({
+      include: [
+        {
+          model: JobResponse,
+          where: { workerId: req.user.id },
+          required: true,
+        },
+        {
+          model: JobRating,
+        },
+      ],
       order: [["createdAt", "DESC"]],
     });
 
-    const data = responses.map((r) => ({
-      id: r.Job.id,
-      title: r.Job.title,
-      status: r.Job.status,
-      myResponseStatus: r.status,
-      rating: r.Job.JobRating ? r.Job.JobRating.rating : null,
-    }));
+    const data = jobs.map((job) => {
+      const myResponse = job.JobResponses[0];
+
+      return {
+        id: job.id,
+        title: job.title,
+        status: job.status,
+        myResponseStatus: myResponse.status,
+        rating: job.JobRating ? job.JobRating.rating : null,
+      };
+    });
 
     res.json(data);
-  }
-);
-
-/* =========================
-   FINISH + RATING
-========================= */
-
-app.post(
-  "/api/jobs/:jobId/finish",
-  requireUser,
-  requireRole("zadavatel"),
-  async (req, res) => {
-    const job = await Job.findByPk(req.params.jobId);
-    if (job.customerId !== req.user.id || job.status !== "domluveno") {
-      return res.status(400).json({ error: "Nelze ukončit zakázku" });
-    }
-
-    await job.update({ status: "hotovo" });
-    res.json({ success: true });
-  }
-);
-
-app.post(
-  "/api/jobs/:jobId/rate",
-  requireUser,
-  requireRole("zadavatel"),
-  async (req, res) => {
-    const { rating, comment } = req.body;
-    const job = await Job.findByPk(req.params.jobId);
-
-    const response = await JobResponse.findOne({
-      where: { jobId: job.id, status: "domluveno" },
-    });
-
-    if (!response) {
-      return res.status(400).json({ error: "Zakázka není domluvena" });
-    }
-
-    const existing = await JobRating.findOne({
-      where: { jobId: job.id },
-    });
-
-    if (existing) {
-      return res.status(400).json({ error: "Zakázka už byla hodnocena" });
-    }
-
-    const jobRating = await JobRating.create({
-      jobId: job.id,
-      customerId: req.user.id,
-      workerId: response.workerId,
-      rating,
-      comment,
-    });
-
-    res.json(jobRating);
   }
 );
 
