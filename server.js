@@ -80,12 +80,26 @@ const Job = sequelize.define("Job", {
   },
 });
 
+/* 🆕 REAKCE ZHOTOVITELE NA ZAKÁZKU */
+const JobResponse = sequelize.define("JobResponse", {
+  status: {
+    type: DataTypes.ENUM("cekani", "domluveno", "zamítnuto"),
+    defaultValue: "cekani",
+  },
+});
+
 /* =========================
    RELATIONS
 ========================= */
 
 User.hasMany(Job, { foreignKey: "customerId" });
 Job.belongsTo(User, { foreignKey: "customerId" });
+
+User.hasMany(JobResponse, { foreignKey: "workerId" });
+JobResponse.belongsTo(User, { foreignKey: "workerId" });
+
+Job.hasMany(JobResponse, { foreignKey: "jobId" });
+JobResponse.belongsTo(Job, { foreignKey: "jobId" });
 
 /* =========================
    HEALTH CHECK
@@ -99,7 +113,6 @@ app.get("/", (req, res) => {
    USERS
 ========================= */
 
-// REGISTER
 app.post("/api/users/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -129,25 +142,18 @@ app.post("/api/users/register", async (req, res) => {
   }
 });
 
-// LOGIN  ✅ NOVÉ
 app.post("/api/users/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: "Chybí email nebo heslo" });
-    }
-
     const user = await User.findOne({ where: { email } });
-
     if (!user) {
-      return res.status(401).json({ error: "Neplatné přihlašovací údaje" });
+      return res.status(401).json({ error: "Neplatné údaje" });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if (!isMatch) {
-      return res.status(401).json({ error: "Neplatné přihlašovací údaje" });
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(401).json({ error: "Neplatné údaje" });
     }
 
     res.json({
@@ -166,18 +172,16 @@ app.post("/api/users/login", async (req, res) => {
    JOBS
 ========================= */
 
-// CREATE JOB
 app.post("/api/jobs", async (req, res) => {
   try {
     const job = await Job.create(req.body);
     res.json(job);
   } catch (err) {
     console.error("JOB CREATE ERROR:", err);
-    res.status(500).json({ error: "Chyba serveru" });
+    res.status(500).json({ error: "Chyba vytvoření zakázky" });
   }
 });
 
-// GET ALL JOBS
 app.get("/api/jobs", async (req, res) => {
   try {
     const jobs = await Job.findAll();
@@ -188,14 +192,9 @@ app.get("/api/jobs", async (req, res) => {
   }
 });
 
-// GET JOBS BY CUSTOMER
 app.get("/api/jobs/my", async (req, res) => {
   try {
     const { customerId } = req.query;
-
-    if (!customerId) {
-      return res.status(400).json({ error: "customerId chybí" });
-    }
 
     const jobs = await Job.findAll({
       where: { customerId },
@@ -204,6 +203,45 @@ app.get("/api/jobs/my", async (req, res) => {
     res.json(jobs);
   } catch (err) {
     console.error("JOB MY ERROR:", err);
+    res.status(500).json({ error: "Chyba serveru" });
+  }
+});
+
+/* =========================
+   🆕 JOB RESPONSES
+========================= */
+
+// zhotovitel reaguje na zakázku
+app.post("/api/jobs/:jobId/respond", async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { workerId } = req.body;
+
+    const response = await JobResponse.create({
+      jobId,
+      workerId,
+    });
+
+    res.json(response);
+  } catch (err) {
+    console.error("JOB RESPONSE ERROR:", err);
+    res.status(500).json({ error: "Chyba reakce na zakázku" });
+  }
+});
+
+// zadavatel vidí reakce na svou zakázku
+app.get("/api/jobs/:jobId/responses", async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    const responses = await JobResponse.findAll({
+      where: { jobId },
+      include: [{ model: User, attributes: ["id", "name", "email"] }],
+    });
+
+    res.json(responses);
+  } catch (err) {
+    console.error("JOB RESPONSES GET ERROR:", err);
     res.status(500).json({ error: "Chyba serveru" });
   }
 });
