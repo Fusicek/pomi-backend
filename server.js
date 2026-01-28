@@ -131,7 +131,9 @@ app.post("/api/users/register", async (req, res) => {
   res.json({ id: user.id, name, email, role });
 });
 
-/* PROFIL + HODNOCENÍ */
+/* =========================
+   PROFILE + RATING
+========================= */
 
 app.get("/api/users/:id/profile", async (req, res) => {
   const user = await User.findByPk(req.params.id, {
@@ -182,7 +184,7 @@ app.get("/api/jobs", async (req, res) => {
 });
 
 /* =========================
-   🆕 AVAILABLE JOBS (VARIANTA B)
+   AVAILABLE JOBS (ZHOTOVITEL)
 ========================= */
 
 app.get(
@@ -190,26 +192,21 @@ app.get(
   requireUser,
   requireRole("zhotovitel"),
   async (req, res) => {
-    try {
-      const respondedJobs = await JobResponse.findAll({
-        where: { workerId: req.user.id },
-        attributes: ["jobId"],
-      });
+    const responded = await JobResponse.findAll({
+      where: { workerId: req.user.id },
+      attributes: ["jobId"],
+    });
 
-      const respondedJobIds = respondedJobs.map((r) => r.jobId);
+    const ids = responded.map((r) => r.jobId);
 
-      const jobs = await Job.findAll({
-        where: {
-          id: { [Op.notIn]: respondedJobIds.length ? respondedJobIds : [0] },
-          status: "cekani",
-        },
-      });
+    const jobs = await Job.findAll({
+      where: {
+        status: "cekani",
+        id: { [Op.notIn]: ids.length ? ids : [0] },
+      },
+    });
 
-      res.json(jobs);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Chyba serveru" });
-    }
+    res.json(jobs);
   }
 );
 
@@ -269,6 +266,53 @@ app.get(
     });
 
     res.json(responses);
+  }
+);
+
+/* =========================
+   🆕 DASHBOARD ZADAVATELE
+========================= */
+
+app.get(
+  "/api/dashboard/customer",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    const jobs = await Job.findAll({
+      where: { customerId: req.user.id },
+      include: [
+        {
+          model: JobResponse,
+          include: [{ model: User, attributes: ["id", "name"] }],
+        },
+        {
+          model: JobRating,
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    const data = jobs.map((job) => {
+      const confirmed = job.JobResponses?.find(
+        (r) => r.status === "domluveno"
+      );
+
+      return {
+        id: job.id,
+        title: job.title,
+        status: job.status,
+        responsesCount: job.JobResponses.length,
+        selectedWorker: confirmed
+          ? {
+              id: confirmed.User.id,
+              name: confirmed.User.name,
+            }
+          : null,
+        canRate: job.status === "hotovo" && !job.JobRating,
+      };
+    });
+
+    res.json(data);
   }
 );
 
