@@ -295,6 +295,53 @@ app.post(
 );
 
 /* =========================
+   DASHBOARD ZADAVATELE ✅
+========================= */
+
+app.get(
+  "/api/dashboard/customer",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    const jobs = await Job.findAll({
+      where: { customerId: req.user.id },
+      include: [
+        {
+          model: JobResponse,
+          include: [{ model: User, attributes: ["id", "name"] }],
+        },
+        {
+          model: JobRating,
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    const data = jobs.map((job) => {
+      const confirmed = job.JobResponses.find(
+        (r) => r.status === "domluveno"
+      );
+
+      return {
+        id: job.id,
+        title: job.title,
+        status: job.status,
+        responsesCount: job.JobResponses.length,
+        selectedWorker: confirmed
+          ? {
+              id: confirmed.User.id,
+              name: confirmed.User.name,
+            }
+          : null,
+        canRate: job.status === "hotovo" && !job.JobRating,
+      };
+    });
+
+    res.json(data);
+  }
+);
+
+/* =========================
    DASHBOARD ZHOTOVITELE
 ========================= */
 
