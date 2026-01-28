@@ -41,7 +41,7 @@ const User = sequelize.define("User", {
 const Job = sequelize.define("Job", {
   title: { type: DataTypes.STRING, allowNull: false },
   category: { type: DataTypes.STRING, allowNull: false },
-  description: { type: DataTypes.TEXT, allowNull: true },
+  description: { type: DataTypes.TEXT, allowNull: false },
   reward: { type: DataTypes.STRING, allowNull: false },
   date: { type: DataTypes.DATEONLY, allowNull: false },
   timeFrom: { type: DataTypes.INTEGER, allowNull: false },
@@ -603,7 +603,7 @@ app.get("/api/notifications", requireUser, async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-sequelize.sync({ alter: true }).then(() => {
+sequelize.sync().then(() => {
   app.listen(PORT, () => {
     console.log(`🚀 Server běží na portu ${PORT}`);
   });
