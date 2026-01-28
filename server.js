@@ -568,6 +568,18 @@ app.get(
     });
   }
 );
+/* =========================
+   GET NOTIFICATIONS 🆕
+========================= */
+
+app.get("/api/notifications", requireUser, async (req, res) => {
+  const notifications = await Notification.findAll({
+    where: { userId: req.user.id },
+    order: [["createdAt", "DESC"]],
+  });
+
+  res.json(notifications);
+});
 
 
 
