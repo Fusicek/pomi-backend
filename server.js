@@ -90,6 +90,10 @@ JobResponse.belongsTo(Job, { foreignKey: "jobId" });
 Job.hasOne(JobRating, { foreignKey: "jobId" });
 JobRating.belongsTo(Job, { foreignKey: "jobId" });
 
+User.hasMany(Notification, { foreignKey: "userId" });
+Notification.belongsTo(User, { foreignKey: "userId" });
+
+
 /* =========================
    AUTH MIDDLEWARE
 ========================= */
