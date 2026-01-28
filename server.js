@@ -197,7 +197,7 @@ app.post(
 );
 
 /* =========================
-   ✅ REAKCE NA ZAKÁZKU (ZADAVATEL)
+   REAKCE NA ZAKÁZKU (ZADAVATEL)
 ========================= */
 
 app.get(
@@ -217,6 +217,94 @@ app.get(
     });
 
     res.json(responses);
+  }
+);
+
+/* =========================
+   CONFIRM ZAKÁZKY
+========================= */
+
+app.post(
+  "/api/jobs/:jobId/confirm",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    const { workerId } = req.body;
+
+    const job = await Job.findByPk(req.params.jobId);
+    if (!job || job.customerId !== req.user.id) {
+      return res.status(403).json({ error: "Cizí zakázka" });
+    }
+
+    await JobResponse.update(
+      { status: "zamítnuto" },
+      { where: { jobId: job.id } }
+    );
+
+    await JobResponse.update(
+      { status: "domluveno" },
+      { where: { jobId: job.id, workerId } }
+    );
+
+    await job.update({ status: "domluveno" });
+
+    res.json({ success: true });
+  }
+);
+
+/* =========================
+   FINISH + RATE
+========================= */
+
+app.post(
+  "/api/jobs/:jobId/finish",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    const job = await Job.findByPk(req.params.jobId);
+
+    if (!job || job.customerId !== req.user.id || job.status !== "domluveno") {
+      return res.status(400).json({ error: "Nelze ukončit zakázku" });
+    }
+
+    await job.update({ status: "hotovo" });
+    res.json({ success: true });
+  }
+);
+
+app.post(
+  "/api/jobs/:jobId/rate",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    const { rating, comment } = req.body;
+    const job = await Job.findByPk(req.params.jobId);
+
+    const response = await JobResponse.findOne({
+      where: { jobId: job.id, status: "domluveno" },
+    });
+
+    if (!response) {
+      return res.status(400).json({ error: "Zakázka není domluvena" });
+    }
+
+    const existing = await JobRating.findOne({
+      where: { jobId: job.id },
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: "Zakázka už byla hodnocena" });
+    }
+
+    const jobRating = await JobRating.create({
+      jobId: job.id,
+      customerId: req.user.id,
+      workerId: response.workerId,
+      rating,
+      comment,
+    });
+
+    res.json(jobRating);
   }
 );
 
