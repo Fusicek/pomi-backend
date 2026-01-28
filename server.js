@@ -184,7 +184,7 @@ app.get("/api/jobs", async (req, res) => {
 });
 
 /* =========================
-   AVAILABLE JOBS (ZHOTOVITEL)
+   AVAILABLE JOBS
 ========================= */
 
 app.get(
@@ -270,47 +270,29 @@ app.get(
 );
 
 /* =========================
-   🆕 DASHBOARD ZADAVATELE
+   🆕 DASHBOARD ZHOTOVITELE
 ========================= */
 
 app.get(
-  "/api/dashboard/customer",
+  "/api/dashboard/worker",
   requireUser,
-  requireRole("zadavatel"),
+  requireRole("zhotovitel"),
   async (req, res) => {
-    const jobs = await Job.findAll({
-      where: { customerId: req.user.id },
+    const responses = await JobResponse.findAll({
+      where: { workerId: req.user.id },
       include: [
-        {
-          model: JobResponse,
-          include: [{ model: User, attributes: ["id", "name"] }],
-        },
-        {
-          model: JobRating,
-        },
+        { model: Job, include: [{ model: JobRating }] },
       ],
       order: [["createdAt", "DESC"]],
     });
 
-    const data = jobs.map((job) => {
-      const confirmed = job.JobResponses?.find(
-        (r) => r.status === "domluveno"
-      );
-
-      return {
-        id: job.id,
-        title: job.title,
-        status: job.status,
-        responsesCount: job.JobResponses.length,
-        selectedWorker: confirmed
-          ? {
-              id: confirmed.User.id,
-              name: confirmed.User.name,
-            }
-          : null,
-        canRate: job.status === "hotovo" && !job.JobRating,
-      };
-    });
+    const data = responses.map((r) => ({
+      id: r.Job.id,
+      title: r.Job.title,
+      status: r.Job.status,
+      myResponseStatus: r.status,
+      rating: r.Job.JobRating ? r.Job.JobRating.rating : null,
+    }));
 
     res.json(data);
   }
