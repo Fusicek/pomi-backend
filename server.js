@@ -444,6 +444,52 @@ app.post(
     res.json(jobRating);
   }
 );
+app.get(
+  "/api/dashboard/zadavatel",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    const jobs = await Job.findAll({
+      where: { customerId: req.user.id },
+      include: [
+        {
+          model: JobResponse,
+          attributes: ["id", "status"],
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    const grouped = {
+      cekani: [],
+      domluveno: [],
+      hotovo: [],
+    };
+
+    for (const job of jobs) {
+      grouped[job.status]?.push({
+        id: job.id,
+        title: job.title,
+        category: job.category,
+        reward: job.reward,
+        date: job.date,
+        location: job.location,
+        responsesCount: job.JobResponses.length,
+      });
+    }
+
+    res.json({
+      stats: {
+        cekani: grouped.cekani.length,
+        domluveno: grouped.domluveno.length,
+        hotovo: grouped.hotovo.length,
+        total: jobs.length,
+      },
+      jobs: grouped,
+    });
+  }
+);
+
 
 /* =========================
    START
