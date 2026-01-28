@@ -41,7 +41,7 @@ const User = sequelize.define("User", {
 const Job = sequelize.define("Job", {
   title: { type: DataTypes.STRING, allowNull: false },
   category: { type: DataTypes.STRING, allowNull: false },
-  description: { type: DataTypes.TEXT, allowNull: false },
+  description: { type: DataTypes.TEXT, allowNull: true },
   reward: { type: DataTypes.STRING, allowNull: false },
   date: { type: DataTypes.DATEONLY, allowNull: false },
   timeFrom: { type: DataTypes.INTEGER, allowNull: false },
@@ -608,4 +608,5 @@ sequelize.sync({ alter: true }).then(() => {
     console.log(`🚀 Server běží na portu ${PORT}`);
   });
 });
+
 
