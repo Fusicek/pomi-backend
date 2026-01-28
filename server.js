@@ -208,7 +208,7 @@ app.get("/api/jobs/my", async (req, res) => {
 });
 
 /* =========================
-   🆕 JOB RESPONSES
+   JOB RESPONSES
 ========================= */
 
 // zhotovitel reaguje na zakázku
@@ -227,25 +227,24 @@ app.post("/api/jobs/:jobId/respond", async (req, res) => {
     console.error("JOB RESPONSE ERROR:", err);
     res.status(500).json({ error: "Chyba reakce na zakázku" });
   }
-   // 🆕 ZADAVATEL POTVRDÍ ZHOTOVITELE (DOMLUVENO)
+});
+
+// 🆕 ZADAVATEL POTVRDÍ ZHOTOVITELE
 app.post("/api/jobs/:jobId/confirm", async (req, res) => {
   try {
     const { jobId } = req.params;
     const { workerId } = req.body;
 
-    // zamítnout všechny reakce
     await JobResponse.update(
       { status: "zamítnuto" },
       { where: { jobId } }
     );
 
-    // potvrdit vybraného zhotovitele
     await JobResponse.update(
       { status: "domluveno" },
       { where: { jobId, workerId } }
     );
 
-    // aktualizovat stav zakázky
     await Job.update(
       { status: "domluveno" },
       { where: { id: jobId } }
@@ -258,9 +257,7 @@ app.post("/api/jobs/:jobId/confirm", async (req, res) => {
   }
 });
 
-});
-
-// zadavatel vidí reakce na svou zakázku
+// zadavatel vidí reakce
 app.get("/api/jobs/:jobId/responses", async (req, res) => {
   try {
     const { jobId } = req.params;
