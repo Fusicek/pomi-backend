@@ -202,6 +202,38 @@ app.post(
     res.json(job);
   }
 );
+/* =========================
+   GET JOBS (LIST) 🆕 POUZE PŘIDÁNO
+========================= */
+
+app.get("/api/jobs", requireUser, async (req, res) => {
+  // ZADAVATEL → vidí jen svoje zakázky
+  if (req.user.role === "zadavatel") {
+    const jobs = await Job.findAll({
+      where: {
+        customerId: req.user.id,
+      },
+      order: [["createdAt", "DESC"]],
+    });
+
+    return res.json(jobs);
+  }
+
+  // ZHOTOVITEL → vidí jen zakázky se stavem "cekani"
+  if (req.user.role === "zhotovitel") {
+    const jobs = await Job.findAll({
+      where: {
+        status: "cekani",
+      },
+      order: [["createdAt", "DESC"]],
+    });
+
+    return res.json(jobs);
+  }
+
+  res.status(403).json({ error: "Neznámá role" });
+});
+
 
 /* =========================
    JOB RESPOND (ZHOTOVITEL)
