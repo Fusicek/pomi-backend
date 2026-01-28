@@ -284,21 +284,21 @@ app.post(
       return res.status(400).json({ error: "Už jste reagoval" });
     }
 
-  const response = await JobResponse.create({
-  jobId: job.id,
-  workerId: req.user.id,
-});
+    const response = await JobResponse.create({
+      jobId: job.id,
+      workerId: req.user.id,
+    });
 
-await Notification.create({
-  userId: job.customerId,
-  type: "job_response",
-  message: `Nová reakce na zakázku "${job.title}"`,
-});
+    await Notification.create({
+      userId: job.customerId,
+      type: "job_response",
+      message: `Nová reakce na zakázku "${job.title}"`,
+    });
 
-
-res.json(response);
-
+    res.json(response);
+  }
 );
+
 
 /* =========================
    JOB DETAIL (JEDINÝ ZDROJ PRAVDY)
