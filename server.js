@@ -98,6 +98,39 @@ const requireRole = (role) => (req, res, next) => {
 };
 
 /* =========================
+   AUTH – REGISTER
+========================= */
+
+app.post("/api/auth/register", async (req, res) => {
+  const { name, email, password, role } = req.body;
+
+  if (!name || !email || !password || !role) {
+    return res.status(400).json({ error: "Chybí údaje" });
+  }
+
+  const existing = await User.findOne({ where: { email } });
+  if (existing) {
+    return res.status(400).json({ error: "Uživatel už existuje" });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const user = await User.create({
+    name,
+    email,
+    password: hashedPassword,
+    role,
+  });
+
+  res.json({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  });
+});
+
+/* =========================
    AUTH – LOGIN
 ========================= */
 
@@ -176,86 +209,6 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
     canFinish: job.status === "domluveno",
     canRate: job.status === "hotovo" && !job.JobRating,
   });
-});
-
-/* =========================
-   AKCE (respond / confirm / finish / rate)
-========================= */
-
-app.post("/api/jobs/:jobId/respond", requireUser, requireRole("zhotovitel"), async (req, res) => {
-  const job = await Job.findByPk(req.params.jobId);
-  if (!job || job.status !== "cekani") {
-    return res.status(400).json({ error: "Nelze reagovat" });
-  }
-
-  const existing = await JobResponse.findOne({
-    where: { jobId: job.id, workerId: req.user.id },
-  });
-
-  if (existing) {
-    return res.status(400).json({ error: "Už jste reagoval" });
-  }
-
-  const response = await JobResponse.create({
-    jobId: job.id,
-    workerId: req.user.id,
-  });
-
-  res.json(response);
-});
-
-app.post("/api/jobs/:jobId/confirm", requireUser, requireRole("zadavatel"), async (req, res) => {
-  const { workerId } = req.body;
-  const job = await Job.findByPk(req.params.jobId);
-
-  if (!job || job.customerId !== req.user.id || job.status !== "cekani") {
-    return res.status(400).json({ error: "Nelze potvrdit" });
-  }
-
-  await JobResponse.update({ status: "zamítnuto" }, { where: { jobId: job.id } });
-  await JobResponse.update(
-    { status: "domluveno" },
-    { where: { jobId: job.id, workerId } }
-  );
-
-  await job.update({ status: "domluveno" });
-  res.json({ success: true });
-});
-
-app.post("/api/jobs/:jobId/finish", requireUser, requireRole("zadavatel"), async (req, res) => {
-  const job = await Job.findByPk(req.params.jobId);
-  if (!job || job.customerId !== req.user.id || job.status !== "domluveno") {
-    return res.status(400).json({ error: "Nelze ukončit" });
-  }
-
-  await job.update({ status: "hotovo" });
-  res.json({ success: true });
-});
-
-app.post("/api/jobs/:jobId/rate", requireUser, requireRole("zadavatel"), async (req, res) => {
-  const { rating, comment } = req.body;
-  const job = await Job.findByPk(req.params.jobId);
-
-  if (!job || job.status !== "hotovo") {
-    return res.status(400).json({ error: "Nelze hodnotit" });
-  }
-
-  const existing = await JobRating.findOne({ where: { jobId: job.id } });
-  if (existing) return res.status(400).json({ error: "Už hodnoceno" });
-
-  const response = await JobResponse.findOne({
-    where: { jobId: job.id, status: "domluveno" },
-  });
-
-  const jobRating = await JobRating.create({
-    jobId: job.id,
-    customerId: req.user.id,
-    workerId: response.workerId,
-    rating,
-    comment,
-  });
-
-  res.json(jobRating);
 });
 
 /* =========================
