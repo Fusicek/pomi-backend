@@ -155,7 +155,7 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 /* =========================
-   🆕 CREATE JOB (ZADAVATEL)
+   CREATE JOB (ZADAVATEL)
 ========================= */
 
 app.post(
@@ -200,6 +200,41 @@ app.post(
     });
 
     res.json(job);
+  }
+);
+
+/* =========================
+   🔽 JOB RESPOND (ZHOTOVITEL) – DOPLNĚNO
+========================= */
+
+app.post(
+  "/api/jobs/:jobId/respond",
+  requireUser,
+  requireRole("zhotovitel"),
+  async (req, res) => {
+    const job = await Job.findByPk(req.params.jobId);
+
+    if (!job || job.status !== "cekani") {
+      return res.status(400).json({ error: "Nelze reagovat" });
+    }
+
+    const existing = await JobResponse.findOne({
+      where: {
+        jobId: job.id,
+        workerId: req.user.id,
+      },
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: "Už jste reagoval" });
+    }
+
+    const response = await JobResponse.create({
+      jobId: job.id,
+      workerId: req.user.id,
+    });
+
+    res.json(response);
   }
 );
 
