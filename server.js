@@ -227,6 +227,37 @@ app.post("/api/jobs/:jobId/respond", async (req, res) => {
     console.error("JOB RESPONSE ERROR:", err);
     res.status(500).json({ error: "Chyba reakce na zakázku" });
   }
+   // 🆕 ZADAVATEL POTVRDÍ ZHOTOVITELE (DOMLUVENO)
+app.post("/api/jobs/:jobId/confirm", async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { workerId } = req.body;
+
+    // zamítnout všechny reakce
+    await JobResponse.update(
+      { status: "zamítnuto" },
+      { where: { jobId } }
+    );
+
+    // potvrdit vybraného zhotovitele
+    await JobResponse.update(
+      { status: "domluveno" },
+      { where: { jobId, workerId } }
+    );
+
+    // aktualizovat stav zakázky
+    await Job.update(
+      { status: "domluveno" },
+      { where: { id: jobId } }
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("JOB CONFIRM ERROR:", err);
+    res.status(500).json({ error: "Chyba potvrzení zhotovitele" });
+  }
+});
+
 });
 
 // zadavatel vidí reakce na svou zakázku
