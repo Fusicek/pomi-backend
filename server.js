@@ -50,6 +50,18 @@ const JobResponse = sequelize.define("JobResponse", {
   },
 });
 
+/* 🆕 HODNOCENÍ ZAKÁZKY */
+const JobRating = sequelize.define("JobRating", {
+  rating: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    validate: { min: 1, max: 5 },
+  },
+  comment: {
+    type: DataTypes.TEXT,
+  },
+});
+
 /* =========================
    RELATIONS
 ========================= */
@@ -62,6 +74,15 @@ JobResponse.belongsTo(User, { foreignKey: "workerId" });
 
 Job.hasMany(JobResponse, { foreignKey: "jobId" });
 JobResponse.belongsTo(Job, { foreignKey: "jobId" });
+
+Job.hasOne(JobRating, { foreignKey: "jobId" });
+JobRating.belongsTo(Job, { foreignKey: "jobId" });
+
+User.hasMany(JobRating, { foreignKey: "customerId", as: "givenRatings" });
+User.hasMany(JobRating, { foreignKey: "workerId", as: "receivedRatings" });
+
+JobRating.belongsTo(User, { foreignKey: "customerId", as: "customer" });
+JobRating.belongsTo(User, { foreignKey: "workerId", as: "worker" });
 
 /* =========================
    AUTH
@@ -98,25 +119,17 @@ app.get("/", (req, res) => {
 ========================= */
 
 app.post("/api/users/register", async (req, res) => {
-  try {
-    const { name, email, password, role } = req.body;
-    if (!name || !email || !password || !role) {
-      return res.status(400).json({ error: "Chybí povinná pole" });
-    }
+  const { name, email, password, role } = req.body;
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role,
-    });
+  const user = await User.create({
+    name,
+    email,
+    password: hashedPassword,
+    role,
+  });
 
-    res.json({ id: user.id, name, email, role });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
-  }
+  res.json({ id: user.id, name, email, role });
 });
 
 /* =========================
@@ -128,63 +141,16 @@ app.post(
   requireUser,
   requireRole("zadavatel"),
   async (req, res) => {
-    try {
-      const {
-        title,
-        category,
-        description,
-        reward,
-        date,
-        timeFrom,
-        timeTo,
-        location,
-      } = req.body;
-
-      if (
-        !title ||
-        !category ||
-        !description ||
-        !reward ||
-        !date ||
-        timeFrom === undefined ||
-        timeTo === undefined ||
-        !location
-      ) {
-        return res.status(400).json({
-          error: "Chybí některé povinné pole zakázky",
-        });
-      }
-
-      const job = await Job.create({
-        title,
-        category,
-        description,
-        reward,
-        date,
-        timeFrom,
-        timeTo,
-        location,
-        customerId: req.user.id,
-      });
-
-      res.json(job);
-    } catch (err) {
-      console.error("JOB CREATE ERROR:", err);
-      res.status(500).json({ error: err.message });
-    }
+    const job = await Job.create({
+      ...req.body,
+      customerId: req.user.id,
+    });
+    res.json(job);
   }
 );
 
 app.get("/api/jobs", async (req, res) => {
-  const jobs = await Job.findAll();
-  res.json(jobs);
-});
-
-app.get("/api/jobs/my", requireUser, async (req, res) => {
-  const jobs = await Job.findAll({
-    where: { customerId: req.user.id },
-  });
-  res.json(jobs);
+  res.json(await Job.findAll());
 });
 
 /* =========================
@@ -212,10 +178,6 @@ app.post(
     const { workerId } = req.body;
     const job = await Job.findByPk(req.params.jobId);
 
-    if (!job || job.customerId !== req.user.id) {
-      return res.status(403).json({ error: "Cizí zakázka" });
-    }
-
     await JobResponse.update(
       { status: "zamítnuto" },
       { where: { jobId: job.id } }
@@ -226,24 +188,63 @@ app.post(
       { where: { jobId: job.id, workerId } }
     );
 
-    await Job.update(
-      { status: "domluveno" },
-      { where: { id: job.id } }
-    );
-
+    await job.update({ status: "domluveno" });
     res.json({ success: true });
   }
 );
 
-app.get(
-  "/api/jobs/:jobId/responses",
+/* =========================
+   🆕 FINISH + RATING
+========================= */
+
+app.post(
+  "/api/jobs/:jobId/finish",
   requireUser,
+  requireRole("zadavatel"),
   async (req, res) => {
-    const responses = await JobResponse.findAll({
-      where: { jobId: req.params.jobId },
-      include: [{ model: User, attributes: ["id", "name", "email"] }],
+    const job = await Job.findByPk(req.params.jobId);
+    if (job.customerId !== req.user.id || job.status !== "domluveno") {
+      return res.status(400).json({ error: "Nelze ukončit zakázku" });
+    }
+
+    await job.update({ status: "hotovo" });
+    res.json({ success: true });
+  }
+);
+
+app.post(
+  "/api/jobs/:jobId/rate",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    const { rating, comment } = req.body;
+    const job = await Job.findByPk(req.params.jobId);
+
+    const response = await JobResponse.findOne({
+      where: { jobId: job.id, status: "domluveno" },
     });
-    res.json(responses);
+
+    if (!response) {
+      return res.status(400).json({ error: "Zakázka není domluvena" });
+    }
+
+    const existing = await JobRating.findOne({
+      where: { jobId: job.id },
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: "Zakázka už byla hodnocena" });
+    }
+
+    const jobRating = await JobRating.create({
+      jobId: job.id,
+      customerId: req.user.id,
+      workerId: response.workerId,
+      rating,
+      comment,
+    });
+
+    res.json(jobRating);
   }
 );
 
