@@ -489,6 +489,67 @@ app.get(
     });
   }
 );
+/* =========================
+   DASHBOARD – ZHOTOVITEL 🆕
+========================= */
+
+app.get(
+  "/api/dashboard/zhotovitel",
+  requireUser,
+  requireRole("zhotovitel"),
+  async (req, res) => {
+    const responses = await JobResponse.findAll({
+      where: { workerId: req.user.id },
+      include: [
+        {
+          model: Job,
+          include: [
+            {
+              model: User,
+              attributes: ["id", "name"],
+            },
+          ],
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    const grouped = {
+      cekani: [],
+      domluveno: [],
+      hotovo: [],
+    };
+
+    for (const r of responses) {
+      const job = r.Job;
+
+      grouped[job.status]?.push({
+        jobId: job.id,
+        title: job.title,
+        reward: job.reward,
+        date: job.date,
+        location: job.location,
+        jobStatus: job.status,
+        myResponseStatus: r.status,
+        customer: {
+          id: job.User.id,
+          name: job.User.name,
+        },
+      });
+    }
+
+    res.json({
+      stats: {
+        cekani: grouped.cekani.length,
+        domluveno: grouped.domluveno.length,
+        hotovo: grouped.hotovo.length,
+        total: responses.length,
+      },
+      jobs: grouped,
+    });
+  }
+);
+
 
 
 /* =========================
