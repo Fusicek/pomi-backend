@@ -80,7 +80,6 @@ const Job = sequelize.define("Job", {
   },
 });
 
-/* 🆕 REAKCE ZHOTOVITELE NA ZAKÁZKU */
 const JobResponse = sequelize.define("JobResponse", {
   status: {
     type: DataTypes.ENUM("cekani", "domluveno", "zamítnuto"),
@@ -100,6 +99,35 @@ JobResponse.belongsTo(User, { foreignKey: "workerId" });
 
 Job.hasMany(JobResponse, { foreignKey: "jobId" });
 JobResponse.belongsTo(Job, { foreignKey: "jobId" });
+
+/* =========================
+   AUTH MIDDLEWARE 🆕
+========================= */
+
+const requireUser = async (req, res, next) => {
+  const userId = req.headers["x-user-id"];
+
+  if (!userId) {
+    return res.status(401).json({ error: "Nepřihlášený uživatel" });
+  }
+
+  const user = await User.findByPk(userId);
+  if (!user) {
+    return res.status(401).json({ error: "Uživatel neexistuje" });
+  }
+
+  req.user = user;
+  next();
+};
+
+const requireRole = (role) => {
+  return (req, res, next) => {
+    if (req.user.role !== role) {
+      return res.status(403).json({ error: "Nedostatečné oprávnění" });
+    }
+    next();
+  };
+};
 
 /* =========================
    HEALTH CHECK
@@ -172,15 +200,24 @@ app.post("/api/users/login", async (req, res) => {
    JOBS
 ========================= */
 
-app.post("/api/jobs", async (req, res) => {
-  try {
-    const job = await Job.create(req.body);
-    res.json(job);
-  } catch (err) {
-    console.error("JOB CREATE ERROR:", err);
-    res.status(500).json({ error: "Chyba vytvoření zakázky" });
+// vytvoření zakázky – jen zadavatel
+app.post(
+  "/api/jobs",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    try {
+      const job = await Job.create({
+        ...req.body,
+        customerId: req.user.id,
+      });
+      res.json(job);
+    } catch (err) {
+      console.error("JOB CREATE ERROR:", err);
+      res.status(500).json({ error: "Chyba vytvoření zakázky" });
+    }
   }
-});
+);
 
 app.get("/api/jobs", async (req, res) => {
   try {
@@ -192,12 +229,10 @@ app.get("/api/jobs", async (req, res) => {
   }
 });
 
-app.get("/api/jobs/my", async (req, res) => {
+app.get("/api/jobs/my", requireUser, async (req, res) => {
   try {
-    const { customerId } = req.query;
-
     const jobs = await Job.findAll({
-      where: { customerId },
+      where: { customerId: req.user.id },
     });
 
     res.json(jobs);
@@ -211,68 +246,86 @@ app.get("/api/jobs/my", async (req, res) => {
    JOB RESPONSES
 ========================= */
 
-// zhotovitel reaguje na zakázku
-app.post("/api/jobs/:jobId/respond", async (req, res) => {
-  try {
-    const { jobId } = req.params;
-    const { workerId } = req.body;
+// zhotovitel reaguje
+app.post(
+  "/api/jobs/:jobId/respond",
+  requireUser,
+  requireRole("zhotovitel"),
+  async (req, res) => {
+    try {
+      const { jobId } = req.params;
 
-    const response = await JobResponse.create({
-      jobId,
-      workerId,
-    });
+      const response = await JobResponse.create({
+        jobId,
+        workerId: req.user.id,
+      });
 
-    res.json(response);
-  } catch (err) {
-    console.error("JOB RESPONSE ERROR:", err);
-    res.status(500).json({ error: "Chyba reakce na zakázku" });
+      res.json(response);
+    } catch (err) {
+      console.error("JOB RESPONSE ERROR:", err);
+      res.status(500).json({ error: "Chyba reakce" });
+    }
   }
-});
+);
 
-// 🆕 ZADAVATEL POTVRDÍ ZHOTOVITELE
-app.post("/api/jobs/:jobId/confirm", async (req, res) => {
-  try {
-    const { jobId } = req.params;
-    const { workerId } = req.body;
+// zadavatel potvrzuje
+app.post(
+  "/api/jobs/:jobId/confirm",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    try {
+      const { jobId } = req.params;
+      const { workerId } = req.body;
 
-    await JobResponse.update(
-      { status: "zamítnuto" },
-      { where: { jobId } }
-    );
+      const job = await Job.findByPk(jobId);
+      if (!job || job.customerId !== req.user.id) {
+        return res.status(403).json({ error: "Cizí zakázka" });
+      }
 
-    await JobResponse.update(
-      { status: "domluveno" },
-      { where: { jobId, workerId } }
-    );
+      await JobResponse.update(
+        { status: "zamítnuto" },
+        { where: { jobId } }
+      );
 
-    await Job.update(
-      { status: "domluveno" },
-      { where: { id: jobId } }
-    );
+      await JobResponse.update(
+        { status: "domluveno" },
+        { where: { jobId, workerId } }
+      );
 
-    res.json({ success: true });
-  } catch (err) {
-    console.error("JOB CONFIRM ERROR:", err);
-    res.status(500).json({ error: "Chyba potvrzení zhotovitele" });
+      await Job.update(
+        { status: "domluveno" },
+        { where: { id: jobId } }
+      );
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error("JOB CONFIRM ERROR:", err);
+      res.status(500).json({ error: "Chyba potvrzení" });
+    }
   }
-});
+);
 
-// zadavatel vidí reakce
-app.get("/api/jobs/:jobId/responses", async (req, res) => {
-  try {
-    const { jobId } = req.params;
+// reakce na zakázku
+app.get(
+  "/api/jobs/:jobId/responses",
+  requireUser,
+  async (req, res) => {
+    try {
+      const { jobId } = req.params;
 
-    const responses = await JobResponse.findAll({
-      where: { jobId },
-      include: [{ model: User, attributes: ["id", "name", "email"] }],
-    });
+      const responses = await JobResponse.findAll({
+        where: { jobId },
+        include: [{ model: User, attributes: ["id", "name", "email"] }],
+      });
 
-    res.json(responses);
-  } catch (err) {
-    console.error("JOB RESPONSES GET ERROR:", err);
-    res.status(500).json({ error: "Chyba serveru" });
+      res.json(responses);
+    } catch (err) {
+      console.error("JOB RESPONSES GET ERROR:", err);
+      res.status(500).json({ error: "Chyba serveru" });
+    }
   }
-});
+);
 
 /* =========================
    START SERVER
