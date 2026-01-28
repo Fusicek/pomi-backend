@@ -594,6 +594,31 @@ app.get("/api/notifications", requireUser, async (req, res) => {
 
   res.json(notifications);
 });
+/* =========================
+   MARK NOTIFICATION AS READ 🆕
+========================= */
+
+app.post(
+  "/api/notifications/:id/read",
+  requireUser,
+  async (req, res) => {
+    const notification = await Notification.findOne({
+      where: {
+        id: req.params.id,
+        userId: req.user.id,
+      },
+    });
+
+    if (!notification) {
+      return res.status(404).json({ error: "Notifikace neexistuje" });
+    }
+
+    await notification.update({ isRead: true });
+
+    res.json({ success: true });
+  }
+);
+
 
 
 
