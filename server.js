@@ -166,7 +166,7 @@ app.get(
 );
 
 /* =========================
-   JOB RESPONSES – VARIANTA A
+   JOB RESPONSES – VARIANTA A + 🔒 LOCK
 ========================= */
 
 app.post(
@@ -174,9 +174,17 @@ app.post(
   requireUser,
   requireRole("zhotovitel"),
   async (req, res) => {
+    const job = await Job.findByPk(req.params.jobId);
+
+    if (!job || job.status !== "cekani") {
+      return res
+        .status(400)
+        .json({ error: "Na tuto zakázku už nelze reagovat" });
+    }
+
     const existing = await JobResponse.findOne({
       where: {
-        jobId: req.params.jobId,
+        jobId: job.id,
         workerId: req.user.id,
       },
     });
@@ -188,7 +196,7 @@ app.post(
     }
 
     const response = await JobResponse.create({
-      jobId: req.params.jobId,
+      jobId: job.id,
       workerId: req.user.id,
     });
 
@@ -295,7 +303,7 @@ app.post(
 );
 
 /* =========================
-   DASHBOARD ZADAVATELE ✅
+   DASHBOARDS
 ========================= */
 
 app.get(
@@ -310,9 +318,7 @@ app.get(
           model: JobResponse,
           include: [{ model: User, attributes: ["id", "name"] }],
         },
-        {
-          model: JobRating,
-        },
+        { model: JobRating },
       ],
       order: [["createdAt", "DESC"]],
     });
@@ -328,10 +334,7 @@ app.get(
         status: job.status,
         responsesCount: job.JobResponses.length,
         selectedWorker: confirmed
-          ? {
-              id: confirmed.User.id,
-              name: confirmed.User.name,
-            }
+          ? { id: confirmed.User.id, name: confirmed.User.name }
           : null,
         canRate: job.status === "hotovo" && !job.JobRating,
       };
@@ -340,10 +343,6 @@ app.get(
     res.json(data);
   }
 );
-
-/* =========================
-   DASHBOARD ZHOTOVITELE
-========================= */
 
 app.get(
   "/api/dashboard/worker",
