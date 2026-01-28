@@ -166,7 +166,7 @@ app.get(
 );
 
 /* =========================
-   JOB RESPONSES (VARIANTA A)
+   JOB RESPONSES – VARIANTA A
 ========================= */
 
 app.post(
@@ -193,6 +193,44 @@ app.post(
     });
 
     res.json(response);
+  }
+);
+
+/* =========================
+   🔒 POTVRZENÍ ZAKÁZKY – FIX
+========================= */
+
+app.post(
+  "/api/jobs/:jobId/confirm",
+  requireUser,
+  requireRole("zadavatel"),
+  async (req, res) => {
+    const { workerId } = req.body;
+    const job = await Job.findByPk(req.params.jobId);
+
+    if (!job || job.customerId !== req.user.id) {
+      return res.status(403).json({ error: "Cizí zakázka" });
+    }
+
+    if (job.status === "domluveno") {
+      return res
+        .status(400)
+        .json({ error: "Zakázka už byla potvrzena" });
+    }
+
+    await JobResponse.update(
+      { status: "zamítnuto" },
+      { where: { jobId: job.id } }
+    );
+
+    await JobResponse.update(
+      { status: "domluveno" },
+      { where: { jobId: job.id, workerId } }
+    );
+
+    await job.update({ status: "domluveno" });
+
+    res.json({ success: true });
   }
 );
 
