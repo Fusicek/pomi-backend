@@ -219,10 +219,24 @@ app.post(
   requireUser,
   requireRole("zhotovitel"),
   async (req, res) => {
+    const existing = await JobResponse.findOne({
+      where: {
+        jobId: req.params.jobId,
+        workerId: req.user.id,
+      },
+    });
+
+    if (existing) {
+      return res
+        .status(400)
+        .json({ error: "Na tuto zakázku už jste reagoval" });
+    }
+
     const response = await JobResponse.create({
       jobId: req.params.jobId,
       workerId: req.user.id,
     });
+
     res.json(response);
   }
 );
@@ -270,7 +284,7 @@ app.get(
 );
 
 /* =========================
-   🆕 DASHBOARD ZHOTOVITELE
+   DASHBOARD ZHOTOVITELE
 ========================= */
 
 app.get(
@@ -280,9 +294,7 @@ app.get(
   async (req, res) => {
     const responses = await JobResponse.findAll({
       where: { workerId: req.user.id },
-      include: [
-        { model: Job, include: [{ model: JobRating }] },
-      ],
+      include: [{ model: Job, include: [{ model: JobRating }] }],
       order: [["createdAt", "DESC"]],
     });
 
