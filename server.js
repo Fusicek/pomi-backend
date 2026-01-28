@@ -131,37 +131,32 @@ app.post("/api/users/register", async (req, res) => {
   res.json({ id: user.id, name, email, role });
 });
 
-/* 🆕 PROFIL UŽIVATELE + HODNOCENÍ */
+/* PROFIL UŽIVATELE + HODNOCENÍ */
 app.get("/api/users/:id/profile", async (req, res) => {
-  try {
-    const user = await User.findByPk(req.params.id, {
-      attributes: ["id", "name", "role"],
-    });
+  const user = await User.findByPk(req.params.id, {
+    attributes: ["id", "name", "role"],
+  });
 
-    if (!user) {
-      return res.status(404).json({ error: "Uživatel neexistuje" });
-    }
-
-    const stats = await JobRating.findAll({
-      where: { workerId: user.id },
-      attributes: [
-        [sequelize.fn("AVG", sequelize.col("rating")), "avgRating"],
-        [sequelize.fn("COUNT", sequelize.col("id")), "count"],
-      ],
-      raw: true,
-    });
-
-    res.json({
-      ...user.toJSON(),
-      rating: stats[0].avgRating
-        ? Number(stats[0].avgRating).toFixed(2)
-        : null,
-      ratingCount: Number(stats[0].count),
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Chyba serveru" });
+  if (!user) {
+    return res.status(404).json({ error: "Uživatel neexistuje" });
   }
+
+  const stats = await JobRating.findAll({
+    where: { workerId: user.id },
+    attributes: [
+      [sequelize.fn("AVG", sequelize.col("rating")), "avgRating"],
+      [sequelize.fn("COUNT", sequelize.col("id")), "count"],
+    ],
+    raw: true,
+  });
+
+  res.json({
+    ...user.toJSON(),
+    rating: stats[0].avgRating
+      ? Number(stats[0].avgRating).toFixed(2)
+      : null,
+    ratingCount: Number(stats[0].count),
+  });
 });
 
 /* =========================
@@ -241,6 +236,26 @@ app.get(
     });
 
     res.json(responses);
+  }
+);
+
+/* =========================
+   🆕 WORKER JOBS
+========================= */
+
+app.get(
+  "/api/workers/:id/jobs",
+  requireUser,
+  async (req, res) => {
+    const workerId = req.params.id;
+
+    const responses = await JobResponse.findAll({
+      where: { workerId },
+      include: [{ model: Job }],
+    });
+
+    const jobs = responses.map((r) => r.Job);
+    res.json(jobs);
   }
 );
 
