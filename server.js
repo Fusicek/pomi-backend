@@ -22,73 +22,39 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
 ========================= */
 
 const User = sequelize.define("User", {
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  email: {
-    type: DataTypes.STRING,
-    unique: true,
-    allowNull: false,
-  },
-  password: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  role: {
-    type: DataTypes.ENUM("zadavatel", "zhotovitel"),
-    allowNull: false,
-  },
+  name: { type: DataTypes.STRING, allowNull: false },
+  email: { type: DataTypes.STRING, unique: true, allowNull: false },
+  password: { type: DataTypes.STRING, allowNull: false },
+  role: { type: DataTypes.ENUM("zadavatel", "zhotovitel"), allowNull: false },
 });
 
 const Job = sequelize.define("Job", {
-  title: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  category: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-  },
-  reward: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  date: {
-    type: DataTypes.DATEONLY,
-    allowNull: false,
-  },
-  timeFrom: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  timeTo: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  location: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  status: {
-    type: DataTypes.STRING,
-    defaultValue: "cekani",
-  },
+  title: { type: DataTypes.STRING, allowNull: false },
+  category: { type: DataTypes.STRING, allowNull: false },
+  description: { type: DataTypes.TEXT, allowNull: false },
+  reward: { type: DataTypes.STRING, allowNull: false },
+  date: { type: DataTypes.DATEONLY, allowNull: false },
+  timeFrom: { type: DataTypes.INTEGER, allowNull: false },
+  timeTo: { type: DataTypes.INTEGER, allowNull: false },
+  location: { type: DataTypes.STRING, allowNull: false },
+  status: { type: DataTypes.STRING, defaultValue: "cekani" },
+
+  customerId: { type: DataTypes.INTEGER, allowNull: false },
+  helperId: { type: DataTypes.INTEGER, allowNull: true }, // 👈 NOVÉ
 });
 
 /* =========================
    RELATIONS
 ========================= */
 
-User.hasMany(Job, { foreignKey: "customerId" });
-Job.belongsTo(User, { foreignKey: "customerId" });
+User.hasMany(Job, { foreignKey: "customerId", as: "CreatedJobs" });
+User.hasMany(Job, { foreignKey: "helperId", as: "TakenJobs" });
+
+Job.belongsTo(User, { foreignKey: "customerId", as: "Customer" });
+Job.belongsTo(User, { foreignKey: "helperId", as: "Helper" });
 
 /* =========================
-   HEALTH CHECK
+   HEALTH
 ========================= */
 
 app.get("/", (req, res) => {
@@ -99,66 +65,37 @@ app.get("/", (req, res) => {
    USERS
 ========================= */
 
-// REGISTER
 app.post("/api/users/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-
-    if (!name || !email || !password || !role) {
-      return res.status(400).json({ error: "Chybí povinná pole" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashed = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       name,
       email,
-      password: hashedPassword,
+      password: hashed,
       role,
     });
 
-    res.json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    });
+    res.json({ id: user.id, name: user.name, role: user.role });
   } catch (err) {
-    console.error("REGISTER ERROR:", err);
-    res.status(500).json({ error: "Chyba serveru" });
+    res.status(500).json({ error: "Chyba registrace" });
   }
 });
 
-// LOGIN  ✅ NOVÉ
 app.post("/api/users/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: "Chybí email nebo heslo" });
-    }
-
     const user = await User.findOne({ where: { email } });
+    if (!user) return res.status(401).json({ error: "Špatné údaje" });
 
-    if (!user) {
-      return res.status(401).json({ error: "Neplatné přihlašovací údaje" });
-    }
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) return res.status(401).json({ error: "Špatné údaje" });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if (!isMatch) {
-      return res.status(401).json({ error: "Neplatné přihlašovací údaje" });
-    }
-
-    res.json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    });
-  } catch (err) {
-    console.error("LOGIN ERROR:", err);
-    res.status(500).json({ error: "Chyba serveru" });
+    res.json({ id: user.id, name: user.name, role: user.role });
+  } catch {
+    res.status(500).json({ error: "Chyba loginu" });
   }
 });
 
@@ -166,56 +103,60 @@ app.post("/api/users/login", async (req, res) => {
    JOBS
 ========================= */
 
-// CREATE JOB
+// vytvoření zakázky
 app.post("/api/jobs", async (req, res) => {
   try {
     const job = await Job.create(req.body);
     res.json(job);
   } catch (err) {
-    console.error("JOB CREATE ERROR:", err);
-    res.status(500).json({ error: "Chyba serveru" });
+    res.status(500).json({ error: "Chyba vytvoření zakázky" });
   }
 });
 
-// GET ALL JOBS
+// všechny zakázky
 app.get("/api/jobs", async (req, res) => {
-  try {
-    const jobs = await Job.findAll();
-    res.json(jobs);
-  } catch (err) {
-    console.error("JOB GET ERROR:", err);
-    res.status(500).json({ error: "Chyba serveru" });
-  }
+  const jobs = await Job.findAll();
+  res.json(jobs);
 });
 
-// GET JOBS BY CUSTOMER
+// moje zakázky (zadavatel)
 app.get("/api/jobs/my", async (req, res) => {
-  try {
-    const { customerId } = req.query;
+  const { customerId } = req.query;
+  const jobs = await Job.findAll({ where: { customerId } });
+  res.json(jobs);
+});
 
-    if (!customerId) {
-      return res.status(400).json({ error: "customerId chybí" });
+// 🔥 ZHOTOVITEL SE PŘIHLÁSÍ K ZAKÁZCE
+app.post("/api/jobs/:id/assign", async (req, res) => {
+  try {
+    const { helperId } = req.body;
+    const job = await Job.findByPk(req.params.id);
+
+    if (!job) {
+      return res.status(404).json({ error: "Zakázka nenalezena" });
     }
 
-    const jobs = await Job.findAll({
-      where: { customerId },
-    });
+    if (job.status !== "cekani") {
+      return res.status(400).json({ error: "Zakázka už není dostupná" });
+    }
 
-    res.json(jobs);
+    job.helperId = helperId;
+    job.status = "domluveno";
+    await job.save();
+
+    res.json(job);
   } catch (err) {
-    console.error("JOB MY ERROR:", err);
-    res.status(500).json({ error: "Chyba serveru" });
+    res.status(500).json({ error: "Chyba přiřazení zhotovitele" });
   }
 });
 
 /* =========================
-   START SERVER
+   START
 ========================= */
 
 const PORT = process.env.PORT || 5000;
 
 sequelize.sync().then(() => {
-  console.log("✅ DB synchronizována");
   app.listen(PORT, () => {
     console.log(`🚀 Server běží na portu ${PORT}`);
   });
