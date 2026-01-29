@@ -4,7 +4,22 @@ const bcrypt = require("bcrypt");
 const cors = require("cors");
 
 const app = express();
-app.use(cors());
+
+/* ===== CORS – MUSÍ BÝT ÚPLNĚ NAHOŘE ===== */
+app.use(
+  cors({
+    origin: [
+      "https://pomi.pro",
+      "https://www.pomi.pro",
+      "http://localhost:3000",
+    ],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "x-user-id"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  })
+);
+
+/* ===== JSON parser ===== */
 app.use(express.json());
 
 /* =========================
