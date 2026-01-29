@@ -179,6 +179,19 @@ app.post("/api/auth/login", async (req, res) => {
     role: user.role,
   });
 });
+/* =========================
+   GET CURRENT USER 🆕
+========================= */
+
+app.get("/api/me", requireUser, async (req, res) => {
+  res.json({
+    id: req.user.id,
+    name: req.user.name,
+    email: req.user.email,
+    role: req.user.role,
+  });
+});
+
 
 /* =========================
    CREATE JOB (ZADAVATEL)
