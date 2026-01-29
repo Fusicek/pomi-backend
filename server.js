@@ -491,6 +491,12 @@ app.post(
       rating,
       comment,
     });
+     await Notification.create({
+  userId: response.workerId,
+  type: "job_rated",
+  message: `Zakázka "${job.title}" byla ohodnocena (${rating}/5)`,
+});
+
 
     res.json(jobRating);
   }
