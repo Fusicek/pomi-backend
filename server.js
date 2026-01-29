@@ -159,16 +159,23 @@ app.post("/api/auth/register", async (req, res) => {
 /* =========================
    AUTH – LOGIN
 ========================= */
-
 app.post("/api/auth/login", async (req, res) => {
+  console.log("LOGIN BODY:", req.body);
+
   const { email, password } = req.body;
 
+  if (!email || !password) {
+    return res.status(400).json({ error: "Chybí email nebo heslo" });
+  }
+
   const user = await User.findOne({ where: { email } });
+
   if (!user) {
     return res.status(400).json({ error: "Neplatný email nebo heslo" });
   }
 
   const ok = await bcrypt.compare(password, user.password);
+
   if (!ok) {
     return res.status(400).json({ error: "Neplatný email nebo heslo" });
   }
@@ -179,6 +186,7 @@ app.post("/api/auth/login", async (req, res) => {
     role: user.role,
   });
 });
+
 /* =========================
    GET CURRENT USER 🆕
 ========================= */
