@@ -661,6 +661,28 @@ app.post(
     res.json({ success: true });
   }
 );
+/* =========================
+   MARK ALL NOTIFICATIONS AS READ 🆕
+========================= */
+
+app.post(
+  "/api/notifications/read-all",
+  requireUser,
+  async (req, res) => {
+    await Notification.update(
+      { isRead: true },
+      {
+        where: {
+          userId: req.user.id,
+          isRead: false,
+        },
+      }
+    );
+
+    res.json({ success: true });
+  }
+);
+
 
 
 
