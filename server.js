@@ -399,6 +399,12 @@ app.post(
 
     await response.update({ status: "domluveno" });
     await job.update({ status: "domluveno" });
+     await Notification.create({
+  userId: workerId,
+  type: "job_confirmed",
+  message: `Byl(a) jsi vybrán(a) na zakázku "${job.title}"`,
+});
+
 
     res.json({ success: true });
   }
