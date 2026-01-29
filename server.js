@@ -430,6 +430,18 @@ app.post(
     }
 
     await job.update({ status: "hotovo" });
+     const response = await JobResponse.findOne({
+  where: { jobId: job.id, status: "domluveno" },
+});
+
+if (response) {
+  await Notification.create({
+    userId: response.workerId,
+    type: "job_finished",
+    message: `Zakázka "${job.title}" byla označena jako hotová`,
+  });
+}
+
 
     res.json({ success: true });
   }
