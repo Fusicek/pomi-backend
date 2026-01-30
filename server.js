@@ -206,12 +206,23 @@ app.post("/api/auth/login", async (req, res) => {
    GET CURRENT USER 🆕
 ========================= */
 
-app.get("/api/me", requireUser, async (req, res) => {
+app.get("/api/me", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+
+  if (!userId) {
+    return res.status(401).json({ error: "Nepřihlášený uživatel" });
+  }
+
+  const user = await User.findByPk(userId);
+
+  if (!user) {
+    return res.status(401).json({ error: "Uživatel neexistuje" });
+  }
+
   res.json({
-    id: req.user.id,
-    name: req.user.name,
-    email: req.user.email,
-    role: req.user.role,
+    id: user.id,
+    name: user.name,
+    role: user.role,
   });
 });
 
