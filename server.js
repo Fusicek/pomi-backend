@@ -174,6 +174,27 @@ app.post("/api/auth/register", async (req, res) => {
 /* =========================
    AUTH – LOGIN
 ========================= */
+app.post(
+  "/api/profile",
+  requireUser,
+  requireRole("zhotovitel"),
+  async (req, res) => {
+    const { description } = req.body;
+
+    if (!description || description.length < 20) {
+      return res.status(400).json({
+        error: "Popis musí mít alespoň 20 znaků",
+      });
+    }
+
+    await req.user.update({
+      description,
+      profileCompleted: true,
+    });
+
+    res.json({ success: true });
+  }
+);
 app.post("/api/auth/login", async (req, res) => {
   console.log("LOGIN BODY:", req.body);
 
