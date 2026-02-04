@@ -730,11 +730,12 @@ app.post(
 
 const PORT = process.env.PORT || 5000;
 
-sequelize.sync({ alter: true }).then(() => {
+sequelize.sync().then(() => {
   app.listen(PORT, () => {
     console.log(`🚀 Server běží na portu ${PORT}`);
   });
 });
+
 
 
 
