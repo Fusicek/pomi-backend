@@ -120,6 +120,7 @@ const Notification = sequelize.define("Notification", {
    RELATIONS
 ========================= */
 
+// ZHOTOVITEL ↔ REAKCE
 User.hasMany(JobResponse, {
   foreignKey: "workerId",
 });
@@ -127,18 +128,18 @@ JobResponse.belongsTo(User, {
   foreignKey: "workerId",
   as: "worker",
 });
-// ⬇⬇⬇ ZADAVATEL ↔ ZAKÁZKY
+
+// ZADAVATEL ↔ ZAKÁZKY
 User.hasMany(Job, {
   foreignKey: "customerId",
   as: "jobs",
 });
-
 Job.belongsTo(User, {
   foreignKey: "customerId",
   as: "customer",
 });
 
-
+// ZAKÁZKA ↔ REAKCE
 Job.hasMany(JobResponse, {
   foreignKey: "jobId",
   as: "responses",
@@ -146,22 +147,15 @@ Job.hasMany(JobResponse, {
 JobResponse.belongsTo(Job, {
   foreignKey: "jobId",
 });
+
+// ZAKÁZKA ↔ HODNOCENÍ
 Job.hasOne(JobRating, {
   foreignKey: "jobId",
 });
 JobRating.belongsTo(Job, {
   foreignKey: "jobId",
 });
-// 🆕 ZADAVATEL ZAKÁZKY
-User.hasMany(Job, {
-  foreignKey: "customerId",
-  as: "jobs",
-});
 
-Job.belongsTo(User, {
-  foreignKey: "customerId",
-  as: "customer",
-});
 
 
 
