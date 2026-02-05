@@ -100,14 +100,6 @@ const Notification = sequelize.define("Notification", {
    RELATIONS
 ========================= */
 
-User.hasMany(Job, {
-  foreignKey: "customerId",
-});
-Job.belongsTo(User, {
-  foreignKey: "customerId",
-  as: "customer",
-});
-
 User.hasMany(JobResponse, {
   foreignKey: "workerId",
 });
@@ -118,10 +110,12 @@ JobResponse.belongsTo(User, {
 
 Job.hasMany(JobResponse, {
   foreignKey: "jobId",
+  as: "responses",   // ⬅⬅⬅ TADY TO CHYBĚLO
 });
 JobResponse.belongsTo(Job, {
   foreignKey: "jobId",
 });
+
 
 
 
