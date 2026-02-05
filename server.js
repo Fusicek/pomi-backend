@@ -104,7 +104,10 @@ User.hasMany(Job, { foreignKey: "customerId" });
 Job.belongsTo(User, { foreignKey: "customerId" });
 
 User.hasMany(JobResponse, { foreignKey: "workerId" });
-JobResponse.belongsTo(User, { foreignKey: "workerId" });
+JobResponse.belongsTo(User, {
+  foreignKey: "workerId",
+  as: "worker",
+});
 
 Job.hasMany(JobResponse, { foreignKey: "jobId" });
 JobResponse.belongsTo(Job, { foreignKey: "jobId" });
@@ -114,6 +117,7 @@ JobRating.belongsTo(Job, { foreignKey: "jobId" });
 
 User.hasMany(Notification, { foreignKey: "userId" });
 Notification.belongsTo(User, { foreignKey: "userId" });
+
 
 
 /* =========================
@@ -374,8 +378,19 @@ app.post(
 app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
   const job = await Job.findByPk(req.params.jobId, {
     include: [
-      { model: JobResponse, include: [{ model: User, attributes: ["id", "name"] }] },
-      { model: JobRating },
+      {
+        model: JobResponse,
+        include: [
+          {
+            model: User,
+            as: "worker",
+            attributes: ["id", "name"],
+          },
+        ],
+      },
+      {
+        model: JobRating,
+      },
     ],
   });
 
@@ -402,7 +417,9 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
     return res.status(403).json({ error: "Cizí zakázka" });
   }
 
-  const confirmed = job.JobResponses.find((r) => r.status === "domluveno");
+  const confirmed = job.JobResponses.find(
+    (r) => r.status === "domluveno"
+  );
 
   res.json({
     id: job.id,
@@ -413,16 +430,23 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
     responses: job.JobResponses.map((r) => ({
       id: r.id,
       status: r.status,
-      worker: { id: r.User.id, name: r.User.name },
+      worker: {
+        id: r.worker.id,
+        name: r.worker.name,
+      },
     })),
     selectedWorker: confirmed
-      ? { id: confirmed.User.id, name: confirmed.User.name }
+      ? {
+          id: confirmed.worker.id,
+          name: confirmed.worker.name,
+        }
       : null,
     canConfirm: job.status === "cekani",
     canFinish: job.status === "domluveno",
     canRate: job.status === "hotovo" && !job.JobRating,
   });
 });
+
 
 /* =========================
    CONFIRM JOB (ZADAVATEL)
