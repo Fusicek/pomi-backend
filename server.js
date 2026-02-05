@@ -806,13 +806,12 @@ app.post(
 
 const PORT = process.env.PORT || 5000;
 
-sequelize.sync({ force: true }).then(() => {
-  console.log("🔥 DB RESET – všechny tabulky znovu vytvořeny");
-
+sequelize.sync().then(() => {
   app.listen(PORT, () => {
     console.log(`🚀 Server běží na portu ${PORT}`);
   });
 });
+
 
 
 
