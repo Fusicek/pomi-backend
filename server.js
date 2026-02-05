@@ -18,10 +18,6 @@ app.use(
   })
 );
 
-app.use(express.json());
-
-
-
 
 /* ===== JSON parser ===== */
 app.use(express.json());
