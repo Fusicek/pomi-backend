@@ -351,11 +351,13 @@ app.post(
   requireRole("zhotovitel"),
   async (req, res) => {
 
-    if (!req.user.profileCompleted) {
-      return res.status(403).json({
-        error: "Nejprve vyplň svůj profil",
-        code: "PROFILE_INCOMPLETE",
-      });
+   if (req.user.profileCompleted !== true) {
+  return res.status(403).json({
+    error: "Nejprve vyplň svůj profil",
+    code: "PROFILE_INCOMPLETE",
+  });
+}
+
     }
 
     const job = await Job.findByPk(req.params.jobId);
