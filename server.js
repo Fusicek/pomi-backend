@@ -403,15 +403,18 @@ app.post(
 /* =========================
    JOB DETAIL (JEDINÝ ZDROJ PRAVDY)
 ========================= */
-console.log("USER ID:", req.user.id);
-console.log("JOB customerId:", job.customerId);
 
 app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
+
+  console.log("=== JOB DETAIL DEBUG ===");
+  console.log("REQ USER ID:", req.user.id);
+  console.log("REQ USER ROLE:", req.user.role);
+
   const job = await Job.findByPk(req.params.jobId, {
     include: [
       {
         model: JobResponse,
-        as: "responses", // ⬅⬅⬅ KLÍČOVÉ
+        as: "responses",
         include: [
           {
             model: User,
@@ -429,6 +432,13 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
   if (!job) {
     return res.status(404).json({ error: "Zakázka neexistuje" });
   }
+
+  console.log("JOB CUSTOMER ID:", job.customerId);
+  console.log("========================");
+
+  // … zbytek kódu beze změny
+});
+
 
   // =========================
   // ZHOTOVITEL
