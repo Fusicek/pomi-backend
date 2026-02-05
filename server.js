@@ -4,6 +4,8 @@ const bcrypt = require("bcrypt");
 const cors = require("cors");
 
 const app = express();
+app.options("*", cors());
+
 
 app.use(
   cors({
