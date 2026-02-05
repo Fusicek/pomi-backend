@@ -403,6 +403,8 @@ app.post(
 /* =========================
    JOB DETAIL (JEDINÝ ZDROJ PRAVDY)
 ========================= */
+console.log("USER ID:", req.user.id);
+console.log("JOB customerId:", job.customerId);
 
 app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
   const job = await Job.findByPk(req.params.jobId, {
