@@ -134,6 +134,13 @@ Job.hasMany(JobResponse, {
 JobResponse.belongsTo(Job, {
   foreignKey: "jobId",
 });
+Job.hasOne(JobRating, {
+  foreignKey: "jobId",
+});
+JobRating.belongsTo(Job, {
+  foreignKey: "jobId",
+});
+
 
 
 
