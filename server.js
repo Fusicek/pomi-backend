@@ -1,39 +1,24 @@
 const express = require("express");
 const { Sequelize, DataTypes } = require("sequelize");
 const bcrypt = require("bcrypt");
-
+const cors = require("cors");
 
 const app = express();
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
 
-  const allowedOrigins = [
-    "https://pomi.pro",
-    "https://www.pomi.pro",
-    "http://localhost:3000",
-  ];
+app.use(
+  cors({
+    origin: [
+      "https://pomi.pro",
+      "https://www.pomi.pro",
+      "http://localhost:3000",
+    ],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "x-user-id"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  })
+);
 
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
-
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, x-user-id"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS"
-  );
-
-  // 🔥 KLÍČOVÉ – odpověz na OPTIONS VŽDY
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
-
-  next();
-});
+app.use(express.json());
 
 
 
