@@ -251,8 +251,11 @@ app.get("/api/me", requireUser, async (req, res) => {
     name: req.user.name,
     email: req.user.email,
     role: req.user.role,
+    profileCompleted: req.user.profileCompleted, // ⬅⬅⬅ DŮLEŽITÉ
+    description: req.user.description,
   });
 });
+
 
 
 
