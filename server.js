@@ -445,6 +445,15 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
     return res.status(404).json({ error: "Zakázka neexistuje" });
   }
 
+  // ✅ DEBUG – TADY JE TO SPRÁVNĚ
+  console.log(
+    job.responses.map((r) => ({
+      workerId: r.worker.id,
+      workerName: r.worker.name,
+      workerDescription: r.worker.description,
+    }))
+  );
+
   // =========================
   // ZHOTOVITEL
   // =========================
@@ -491,6 +500,7 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
       worker: {
         id: r.worker.id,
         name: r.worker.name,
+        description: r.worker.description, // ⬅⬅⬅ TADY BYL PROBLÉM
       },
     })),
     selectedWorker: confirmed
@@ -504,13 +514,6 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
     canRate: job.status === "hotovo" && !job.JobRating,
   });
 });
-console.log(
-  job.responses.map(r => ({
-    workerId: r.worker.id,
-    workerName: r.worker.name,
-    workerDescription: r.worker.description,
-  }))
-);
 
 
 
