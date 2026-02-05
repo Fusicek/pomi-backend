@@ -1,7 +1,7 @@
 const express = require("express");
 const { Sequelize, DataTypes } = require("sequelize");
 const bcrypt = require("bcrypt");
-const cors = require("cors");
+
 
 const app = express();
 app.use((req, res, next) => {
