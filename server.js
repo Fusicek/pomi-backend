@@ -100,31 +100,22 @@ const Notification = sequelize.define("Notification", {
    RELATIONS
 ========================= */
 
-// Zadavatel → zakázky
-User.hasMany(Job, { foreignKey: "customerId" });
-Job.belongsTo(User, { foreignKey: "customerId" });
-
-// Zhotovitel → reakce
-User.hasMany(JobResponse, { foreignKey: "workerId" });
+User.hasMany(JobResponse, {
+  foreignKey: "workerId",
+});
 JobResponse.belongsTo(User, {
   foreignKey: "workerId",
   as: "worker",
 });
 
-// Zakázka → reakce  ✅ DŮLEŽITÉ
 Job.hasMany(JobResponse, {
   foreignKey: "jobId",
-  as: "responses",
+  as: "responses", // ⬅ DŮLEŽITÉ
 });
-JobResponse.belongsTo(Job, { foreignKey: "jobId" });
+JobResponse.belongsTo(Job, {
+  foreignKey: "jobId",
+});
 
-// Hodnocení
-Job.hasOne(JobRating, { foreignKey: "jobId" });
-JobRating.belongsTo(Job, { foreignKey: "jobId" });
-
-// Notifikace
-User.hasMany(Notification, { foreignKey: "userId" });
-Notification.belongsTo(User, { foreignKey: "userId" });
 
 /* =========================
    AUTH MIDDLEWARE
