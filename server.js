@@ -431,7 +431,7 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
           {
             model: User,
             as: "worker",
-            attributes: ["id", "name"],
+            attributes: ["id", "name", "description"],
           },
         ],
       },
