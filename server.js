@@ -358,7 +358,7 @@ app.post(
   });
 }
 
-    }
+    
 
     const job = await Job.findByPk(req.params.jobId);
 
