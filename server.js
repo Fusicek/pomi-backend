@@ -648,7 +648,8 @@ app.get(
         reward: job.reward,
         date: job.date,
         location: job.location,
-        responsesCount: job.responses.length, // ✅ FIX
+       responsesCount: job.responses.length,
+ // ✅ FIX
       });
     }
 
