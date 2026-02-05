@@ -63,7 +63,14 @@ const Job = sequelize.define("Job", {
   timeTo: { type: DataTypes.INTEGER, allowNull: false },
   location: { type: DataTypes.STRING, allowNull: false },
   status: { type: DataTypes.STRING, defaultValue: "cekani" },
+
+  // ⬇⬇⬇ TOTO TAM MUSÍ BÝT
+  customerId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
 });
+
 
 const JobResponse = sequelize.define("JobResponse", {
   status: {
@@ -107,6 +114,17 @@ JobResponse.belongsTo(User, {
   foreignKey: "workerId",
   as: "worker",
 });
+// ⬇⬇⬇ ZADAVATEL ↔ ZAKÁZKY
+User.hasMany(Job, {
+  foreignKey: "customerId",
+  as: "jobs",
+});
+
+Job.belongsTo(User, {
+  foreignKey: "customerId",
+  as: "customer",
+});
+
 
 Job.hasMany(JobResponse, {
   foreignKey: "jobId",
@@ -803,11 +821,12 @@ app.post(
 
 const PORT = process.env.PORT || 5000;
 
-sequelize.sync().then(() => {
+sequelize.sync({ alter: true }).then(() => {
   app.listen(PORT, () => {
     console.log(`🚀 Server běží na portu ${PORT}`);
   });
 });
+
 
 
 
