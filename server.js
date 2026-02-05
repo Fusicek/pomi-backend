@@ -377,6 +377,7 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
     include: [
       {
         model: JobResponse,
+        as: "responses", // ⬅⬅⬅ KLÍČOVÉ
         include: [
           {
             model: User,
@@ -391,10 +392,15 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
     ],
   });
 
-  if (!job) return res.status(404).json({ error: "Zakázka neexistuje" });
+  if (!job) {
+    return res.status(404).json({ error: "Zakázka neexistuje" });
+  }
 
+  // =========================
+  // ZHOTOVITEL
+  // =========================
   if (req.user.role === "zhotovitel") {
-    const myResponse = job.JobResponses.find(
+    const myResponse = job.responses.find(
       (r) => r.workerId === req.user.id
     );
 
@@ -410,21 +416,27 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
     });
   }
 
+  // =========================
+  // ZADAVATEL – cizí zakázka
+  // =========================
   if (job.customerId !== req.user.id) {
     return res.status(403).json({ error: "Cizí zakázka" });
   }
 
-  const confirmed = job.JobResponses.find(
+  // =========================
+  // ZADAVATEL – DETAIL
+  // =========================
+  const confirmed = job.responses.find(
     (r) => r.status === "domluveno"
   );
 
-  res.json({
+  return res.json({
     id: job.id,
     title: job.title,
     description: job.description,
     reward: job.reward,
     status: job.status,
-    responses: job.JobResponses.map((r) => ({
+    responses: job.responses.map((r) => ({
       id: r.id,
       status: r.status,
       worker: {
