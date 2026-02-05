@@ -100,23 +100,28 @@ const Notification = sequelize.define("Notification", {
    RELATIONS
 ========================= */
 
-User.hasMany(Job, { foreignKey: "customerId" });
-Job.belongsTo(User, { foreignKey: "customerId" });
+User.hasMany(Job, {
+  foreignKey: "customerId",
+});
+Job.belongsTo(User, {
+  foreignKey: "customerId",
+  as: "customer",
+});
 
-User.hasMany(JobResponse, { foreignKey: "workerId" });
+User.hasMany(JobResponse, {
+  foreignKey: "workerId",
+});
 JobResponse.belongsTo(User, {
   foreignKey: "workerId",
   as: "worker",
 });
 
-Job.hasMany(JobResponse, { foreignKey: "jobId" });
-JobResponse.belongsTo(Job, { foreignKey: "jobId" });
-
-Job.hasOne(JobRating, { foreignKey: "jobId" });
-JobRating.belongsTo(Job, { foreignKey: "jobId" });
-
-User.hasMany(Notification, { foreignKey: "userId" });
-Notification.belongsTo(User, { foreignKey: "userId" });
+Job.hasMany(JobResponse, {
+  foreignKey: "jobId",
+});
+JobResponse.belongsTo(Job, {
+  foreignKey: "jobId",
+});
 
 
 
