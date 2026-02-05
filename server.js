@@ -504,6 +504,14 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
     canRate: job.status === "hotovo" && !job.JobRating,
   });
 });
+console.log(
+  job.responses.map(r => ({
+    workerId: r.worker.id,
+    workerName: r.worker.name,
+    workerDescription: r.worker.description,
+  }))
+);
+
 
 
 /* =========================
