@@ -51,7 +51,18 @@ const User = sequelize.define("User", {
     type: DataTypes.ENUM("zadavatel", "zhotovitel"),
     allowNull: false,
   },
+
+  // 🆕 DOPLNIT
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  profileCompleted: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
 });
+
 
 const Job = sequelize.define("Job", {
   title: { type: DataTypes.STRING, allowNull: false },
@@ -139,6 +150,17 @@ Job.hasOne(JobRating, {
 JobRating.belongsTo(Job, {
   foreignKey: "jobId",
 });
+// 🆕 ZADAVATEL ZAKÁZKY
+User.hasMany(Job, {
+  foreignKey: "customerId",
+  as: "jobs",
+});
+
+Job.belongsTo(User, {
+  foreignKey: "customerId",
+  as: "customer",
+});
+
 
 
 
