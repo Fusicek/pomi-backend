@@ -100,21 +100,21 @@ const Notification = sequelize.define("Notification", {
    RELATIONS
 ========================= */
 
-User.hasMany(JobResponse, {
-  foreignKey: "workerId",
-});
-JobResponse.belongsTo(User, {
-  foreignKey: "workerId",
-  as: "worker",
-});
+User.hasMany(Job, { foreignKey: "customerId", as: "jobs" });
+Job.belongsTo(User, { foreignKey: "customerId", as: "customer" });
+
+User.hasMany(JobResponse, { foreignKey: "workerId" });
+JobResponse.belongsTo(User, { foreignKey: "workerId", as: "worker" });
 
 Job.hasMany(JobResponse, {
   foreignKey: "jobId",
-  as: "responses", // ⬅ DŮLEŽITÉ
+  as: "responses", // ✅ KLÍČOVÝ ALIAS
 });
-JobResponse.belongsTo(Job, {
-  foreignKey: "jobId",
-});
+JobResponse.belongsTo(Job, { foreignKey: "jobId" });
+
+Job.hasOne(JobRating, { foreignKey: "jobId" });
+JobRating.belongsTo(Job, { foreignKey: "jobId" });
+
 
 
 /* =========================
@@ -611,17 +611,14 @@ app.get(
       include: [
         {
           model: JobResponse,
+          as: "responses", // ✅ FIX
           attributes: ["id", "status"],
         },
       ],
       order: [["createdAt", "DESC"]],
     });
 
-    const grouped = {
-      cekani: [],
-      domluveno: [],
-      hotovo: [],
-    };
+    const grouped = { cekani: [], domluveno: [], hotovo: [] };
 
     for (const job of jobs) {
       grouped[job.status]?.push({
@@ -631,7 +628,7 @@ app.get(
         reward: job.reward,
         date: job.date,
         location: job.location,
-        responsesCount: job.JobResponses.length,
+        responsesCount: job.responses.length, // ✅ FIX
       });
     }
 
@@ -646,6 +643,7 @@ app.get(
     });
   }
 );
+
 /* =========================
    DASHBOARD – ZHOTOVITEL 🆕
 ========================= */
@@ -663,6 +661,7 @@ app.get(
           include: [
             {
               model: User,
+              as: "customer", // ✅ FIX
               attributes: ["id", "name"],
             },
           ],
@@ -671,11 +670,7 @@ app.get(
       order: [["createdAt", "DESC"]],
     });
 
-    const grouped = {
-      cekani: [],
-      domluveno: [],
-      hotovo: [],
-    };
+    const grouped = { cekani: [], domluveno: [], hotovo: [] };
 
     for (const r of responses) {
       const job = r.Job;
@@ -689,8 +684,8 @@ app.get(
         jobStatus: job.status,
         myResponseStatus: r.status,
         customer: {
-          id: job.User.id,
-          name: job.User.name,
+          id: job.customer.id,
+          name: job.customer.name,
         },
       });
     }
@@ -706,6 +701,7 @@ app.get(
     });
   }
 );
+
 /* =========================
    GET NOTIFICATIONS 🆕
 ========================= */
