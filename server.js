@@ -479,7 +479,7 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
     canFinish: job.status === "domluveno",
     canRate: job.status === "hotovo" && !job.JobRating,
   });
-});
+
 
 
 /* =========================
