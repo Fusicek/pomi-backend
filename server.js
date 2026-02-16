@@ -872,14 +872,28 @@ app.post(
    START
 ========================= */
 
-const PORT = process.env.PORT || 5000;
+const http = require("http");
+const { Server } = require("socket.io");
+
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: [
+      "https://pomi.pro",
+      "https://www.pomi.pro",
+      "http://localhost:3000",
+    ],
+    methods: ["GET", "POST"],
+  },
+});
 
 sequelize.sync({ alter: true }).then(() => {
- server.listen(PORT, () => {
-  console.log(`🚀 Server běží na portu ${PORT}`);
+  server.listen(PORT, () => {
+    console.log(`🚀 Server běží na portu ${PORT}`);
+  });
 });
 
-});
 
 
 
