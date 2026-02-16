@@ -530,6 +530,105 @@ app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
     }))
   );
 
+  /* =========================
+   GET CHAT MESSAGES
+========================= */
+
+app.get(
+  "/api/jobs/:jobId/messages",
+  requireUser,
+  async (req, res) => {
+    const job = await Job.findByPk(req.params.jobId);
+
+    if (!job) {
+      return res.status(404).json({ error: "Zakázka neexistuje" });
+    }
+
+    // jen zadavatel nebo reagující zhotovitel může vidět chat
+    const isCustomer = job.customerId === req.user.id;
+
+    const hasResponse = await JobResponse.findOne({
+      where: {
+        jobId: job.id,
+        workerId: req.user.id,
+      },
+    });
+
+    if (!isCustomer && !hasResponse) {
+      return res.status(403).json({ error: "Nemáš přístup do chatu" });
+    }
+
+    const messages = await ChatMessage.findAll({
+      where: { jobId: job.id },
+      include: [
+        {
+          model: User,
+          as: "sender",
+          attributes: ["id", "name"],
+        },
+      ],
+      order: [["createdAt", "ASC"]],
+    });
+
+    res.json(messages);
+  }
+);
+
+  /* =========================
+   SEND CHAT MESSAGE
+========================= */
+
+app.post(
+  "/api/jobs/:jobId/messages",
+  requireUser,
+  async (req, res) => {
+    const { message } = req.body;
+
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({ error: "Zpráva je prázdná" });
+    }
+
+    const job = await Job.findByPk(req.params.jobId);
+
+    if (!job) {
+      return res.status(404).json({ error: "Zakázka neexistuje" });
+    }
+
+    const isCustomer = job.customerId === req.user.id;
+
+    const hasResponse = await JobResponse.findOne({
+      where: {
+        jobId: job.id,
+        workerId: req.user.id,
+      },
+    });
+
+    if (!isCustomer && !hasResponse) {
+      return res.status(403).json({ error: "Nemáš přístup do chatu" });
+    }
+
+    const newMessage = await ChatMessage.create({
+      jobId: job.id,
+      userId: req.user.id,
+      message,
+    });
+
+    const messageWithUser = await ChatMessage.findByPk(newMessage.id, {
+      include: [
+        {
+          model: User,
+          as: "sender",
+          attributes: ["id", "name"],
+        },
+      ],
+    });
+
+    res.json(messageWithUser);
+  }
+);
+
+
+
   // =========================
   // ZHOTOVITEL
   // =========================
