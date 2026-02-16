@@ -11,14 +11,12 @@ const server = http.createServer(app);     // 🆕
 // 🆕 SOCKET.IO
 const io = new Server(server, {
   cors: {
-    origin: [
-      "https://pomi.pro",
-      "https://www.pomi.pro",
-      "http://localhost:3000",
-    ],
+    origin: ["https://pomi.pro", "https://www.pomi.pro"],
     methods: ["GET", "POST"],
   },
+  transports: ["websocket"],
 });
+
 
 // =========================
 // SOCKET LOGIKA
