@@ -163,6 +163,22 @@ JobRating.belongsTo(Job, {
 User.hasMany(Notification, { foreignKey: "userId" });
 Notification.belongsTo(User, { foreignKey: "userId" });
 
+/* =========================
+   SOCKET.IO
+========================= */
+
+io.on("connection", (socket) => {
+  console.log("🔌 User connected:", socket.id);
+
+  socket.on("join", (room) => {
+    socket.join(room);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("❌ User disconnected:", socket.id);
+  });
+});
+
 
 
 
@@ -859,9 +875,10 @@ app.post(
 const PORT = process.env.PORT || 5000;
 
 sequelize.sync({ alter: true }).then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 Server běží na portu ${PORT}`);
-  });
+ server.listen(PORT, () => {
+  console.log(`🚀 Server běží na portu ${PORT}`);
+});
+
 });
 
 
