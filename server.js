@@ -139,6 +139,13 @@ const Notification = sequelize.define("Notification", {
     allowNull: true,           // 👈 zatím true kvůli Railway
   },
 });
+const ChatMessage = sequelize.define("ChatMessage", {
+  message: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+  },
+});
+
 
 
 /* =========================
@@ -182,6 +189,31 @@ JobRating.belongsTo(Job, {
 });
 User.hasMany(Notification, { foreignKey: "userId" });
 Notification.belongsTo(User, { foreignKey: "userId" });
+
+// =========================
+// CHAT RELATIONS
+// =========================
+
+// Zakázka má více zpráv
+Job.hasMany(ChatMessage, {
+  foreignKey: "jobId",
+  as: "messages",
+});
+
+ChatMessage.belongsTo(Job, {
+  foreignKey: "jobId",
+});
+
+// Uživatel má více zpráv
+User.hasMany(ChatMessage, {
+  foreignKey: "userId",
+});
+
+ChatMessage.belongsTo(User, {
+  foreignKey: "userId",
+  as: "sender",
+});
+
 
 /* =========================
    SOCKET.IO
