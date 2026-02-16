@@ -101,14 +101,21 @@ const JobRating = sequelize.define("JobRating", {
   comment: DataTypes.TEXT,
 });
 const Notification = sequelize.define("Notification", {
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+
   type: {
     type: DataTypes.STRING,
     allowNull: false,
   },
+
   message: {
     type: DataTypes.STRING,
     allowNull: false,
   },
+
   isRead: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
