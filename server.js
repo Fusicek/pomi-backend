@@ -162,6 +162,9 @@ Job.hasOne(JobRating, {
 JobRating.belongsTo(Job, {
   foreignKey: "jobId",
 });
+User.hasMany(Notification, { foreignKey: "userId" });
+Notification.belongsTo(User, { foreignKey: "userId" });
+
 
 
 
