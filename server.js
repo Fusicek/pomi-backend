@@ -1030,13 +1030,25 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: [
-      "https://pomi.pro",
-      "https://www.pomi.pro",
-      "http://localhost:3000",
-    ],
+    origin: ["https://pomi.pro", "https://www.pomi.pro"],
     methods: ["GET", "POST"],
   },
+});
+
+io.on("connection", (socket) => {
+  console.log("🔌 Client connected:", socket.id);
+
+  socket.on("join_job", (jobId) => {
+    socket.join(`job_${jobId}`);
+  });
+
+  socket.on("send_message", (data) => {
+    io.to(`job_${data.jobId}`).emit("receive_message", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("❌ Client disconnected:", socket.id);
+  });
 });
 
 sequelize.sync({ alter: true }).then(() => {
