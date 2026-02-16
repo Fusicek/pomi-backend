@@ -1,24 +1,25 @@
 const express = require("express");
+const http = require("http");              // 🆕
+const { Server } = require("socket.io");   // 🆕
 const { Sequelize, DataTypes } = require("sequelize");
 const bcrypt = require("bcrypt");
 const cors = require("cors");
 
 const app = express();
-app.options("*", cors());
+const server = http.createServer(app);     // 🆕
 
-
-app.use(
-  cors({
+// 🆕 SOCKET.IO
+const io = new Server(server, {
+  cors: {
     origin: [
       "https://pomi.pro",
       "https://www.pomi.pro",
       "http://localhost:3000",
     ],
-    credentials: true,
-    allowedHeaders: ["Content-Type", "x-user-id"],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  })
-);
+    methods: ["GET", "POST"],
+  },
+});
+
 
 
 /* ===== JSON parser ===== */
