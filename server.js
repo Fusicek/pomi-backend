@@ -20,6 +20,26 @@ const io = new Server(server, {
   },
 });
 
+// =========================
+// SOCKET LOGIKA
+// =========================
+
+io.on("connection", (socket) => {
+  console.log("🔌 User connected:", socket.id);
+
+  // Připojení do místnosti zakázky
+  socket.on("joinJob", (jobId) => {
+    socket.join(`job_${jobId}`);
+    console.log(`User joined room job_${jobId}`);
+  });
+
+  // Odpojení
+  socket.on("disconnect", () => {
+    console.log("❌ User disconnected:", socket.id);
+  });
+});
+
+
 
 
 /* ===== JSON parser ===== */
