@@ -24,18 +24,39 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("🔌 User connected:", socket.id);
 
-  // Připojení do místnosti zakázky
   socket.on("joinJob", (jobId) => {
     socket.join(`job_${jobId}`);
-    console.log(`User joined room job_${jobId}`);
   });
 
-  // Odpojení
+  socket.on("send_message", async (data) => {
+    try {
+      const { jobId, userId, text } = data;
+
+      // uložit do DB
+      const message = await ChatMessage.create({
+        jobId,
+        userId,
+        message: text,
+      });
+
+      // poslat všem v místnosti
+      io.to(`job_${jobId}`).emit("receive_message", {
+        id: message.id,
+        jobId,
+        userId,
+        text,
+        createdAt: message.createdAt,
+      });
+
+    } catch (err) {
+      console.error("Chat error:", err);
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("❌ User disconnected:", socket.id);
   });
 });
-
 
 
 
