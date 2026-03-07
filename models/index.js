@@ -1,14 +1,29 @@
-const { Sequelize } = require("sequelize");
+const User = require("./User");
+const Job = require("./Job");
+const ChatMessage = require("./ChatMessage");
 
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
-  dialect: "postgres",
-  protocol: "postgres",
-  logging: false,
+/* RELATIONS */
+
+Job.hasMany(ChatMessage,{
+  foreignKey:"jobId",
+  as:"messages"
 });
 
-const Job = require("./Job")(sequelize);
+ChatMessage.belongsTo(Job,{
+  foreignKey:"jobId"
+});
+
+User.hasMany(ChatMessage,{
+  foreignKey:"userId"
+});
+
+ChatMessage.belongsTo(User,{
+  foreignKey:"userId",
+  as:"sender"
+});
 
 module.exports = {
-  sequelize,
+  User,
   Job,
+  ChatMessage
 };
