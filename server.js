@@ -4,15 +4,11 @@ const cors = require("cors");
 const { Server } = require("socket.io");
 
 const sequelize = require("./config/database");
+require("./models");
 
-const jobRoutes = require("./routes/jobs");
 const chatRoutes = require("./routes/chat");
+const jobRoutes = require("./routes/jobs");
 const userRoutes = require("./routes/users");
-
-const chatSocket = require("./socket/chatSocket");
-
-const app = express();
-const server = http.createServer(app);
 
 /* CORS */
 
