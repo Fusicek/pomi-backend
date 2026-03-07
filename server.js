@@ -10,6 +10,8 @@ const chatRoutes = require("./routes/chat");
 const jobRoutes = require("./routes/jobs");
 const userRoutes = require("./routes/users");
 
+const chatSocket = require("./socket/chatSocket");
+
 /* CORS */
 
 app.use(cors({
