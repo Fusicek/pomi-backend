@@ -212,22 +212,6 @@ ChatMessage.belongsTo(User, {
 });
 
 
-/* =========================
-   SOCKET.IO
-========================= */
-
-io.on("connection", (socket) => {
-  console.log("🔌 User connected:", socket.id);
-
-  socket.on("join", (room) => {
-    socket.join(room);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("❌ User disconnected:", socket.id);
-  });
-});
-
 
 
 
