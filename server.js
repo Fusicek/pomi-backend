@@ -14,6 +14,7 @@ const io = new Server(server, {
     origin: ["https://pomi.pro", "https://www.pomi.pro"],
     methods: ["GET", "POST"],
   },
+  transports: ["websocket"]
 });
 
 
