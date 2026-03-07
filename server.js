@@ -5,36 +5,44 @@ const { Server } = require("socket.io");
 
 const sequelize = require("./config/database");
 
-const chatSocket = require("./socket/chatSocket");
-
 const chatRoutes = require("./routes/chat");
+const jobRoutes = require("./routes/jobs");
+const userRoutes = require("./routes/users");
+
+const chatSocket = require("./socket/chatSocket");
 
 const app = express();
 const server = http.createServer(app);
 
 app.use(cors({
-origin:["https://pomi.pro","https://www.pomi.pro"],
-credentials:true
+  origin: ["https://pomi.pro","https://www.pomi.pro"],
+  credentials: true
 }));
 
 app.use(express.json());
 
-app.use("/api/jobs",chatRoutes);
+/* ROUTES */
+
+app.use("/api/jobs", jobRoutes);
+app.use("/api/jobs", chatRoutes);
+app.use("/api/users", userRoutes);
+
+/* SOCKET */
 
 const io = new Server(server,{
-cors:{
-origin:["https://pomi.pro","https://www.pomi.pro"]
-}
+  cors:{
+    origin:["https://pomi.pro","https://www.pomi.pro"]
+  }
 });
 
 chatSocket(io);
 
-sequelize.sync({alter:true}).then(()=>{
+/* START */
 
-server.listen(process.env.PORT || 3000,()=>{
+sequelize.sync({ alter:true }).then(()=>{
 
-console.log("🚀 Server běží");
-
-});
+  server.listen(process.env.PORT || 3000,()=>{
+    console.log("🚀 Server běží");
+  });
 
 });
