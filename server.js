@@ -8,6 +8,10 @@ const PORT = process.env.PORT || 3000;
 
 const app = express();
 const server = http.createServer(app);     // 🆕
+app.use(cors({
+  origin: ["https://pomi.pro","https://www.pomi.pro"],
+  credentials: true
+}));
 
 // 🆕 SOCKET.IO
 const io = new Server(server, {
@@ -41,18 +45,20 @@ io.on("connection", (socket) => {
       });
 
       // poslat všem v místnosti
-      io.to(`job_${jobId}`).emit("receive_message", {
-        id: message.id,
-        jobId,
-        userId,
-        text,
-        createdAt: message.createdAt,
-      });
+   const msg = await ChatMessage.findByPk(message.id,{
+  include:[
+    { model:User, as:"sender", attributes:["id","name"] }
+  ]
+});
 
-    } catch (err) {
-      console.error("Chat error:", err);
-    }
-  });
+io.to(`job_${jobId}`).emit("receive_message", {
+  id: msg.id,
+  jobId,
+  userId,
+  text: msg.message,
+  sender: msg.sender?.name,
+  createdAt: msg.createdAt,
+});
 
   socket.on("disconnect", () => {
     console.log("❌ User disconnected:", socket.id);
@@ -161,6 +167,14 @@ const Notification = sequelize.define("Notification", {
 const ChatMessage = sequelize.define("ChatMessage", {
   message: {
     type: DataTypes.TEXT,
+    allowNull: false,
+  },
+  jobId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  userId: {
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
 });
