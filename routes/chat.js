@@ -6,11 +6,13 @@ const User = require("../models/User");
 
 const { requireUser } = require("../middleware/auth");
 
-router.get("/:jobId/messages",requireUser, async(req,res)=>{
+/* GET MESSAGES */
+
+router.get("/:jobId/messages", requireUser, async (req,res)=>{
 
   const messages = await ChatMessage.findAll({
 
-    where:{jobId:req.params.jobId},
+    where:{ jobId:req.params.jobId },
 
     include:[
       {
@@ -28,9 +30,11 @@ router.get("/:jobId/messages",requireUser, async(req,res)=>{
 
 });
 
-router.post("/:jobId/messages",requireUser, async(req,res)=>{
+/* SEND MESSAGE */
 
-  const {message} = req.body;
+router.post("/:jobId/messages", requireUser, async (req,res)=>{
+
+  const { message } = req.body;
 
   const newMessage = await ChatMessage.create({
 
