@@ -4,6 +4,7 @@ const { Server } = require("socket.io");   // 🆕
 const { Sequelize, DataTypes } = require("sequelize");
 const bcrypt = require("bcrypt");
 const cors = require("cors");
+const PORT = process.env.PORT || 3000;
 
 const app = express();
 const server = http.createServer(app);     // 🆕
@@ -14,9 +15,8 @@ const io = new Server(server, {
     origin: ["https://pomi.pro", "https://www.pomi.pro"],
     methods: ["GET", "POST"],
   },
-  transports: ["websocket"]
+  transports: ["websocket", "polling"]
 });
-
 
 // =========================
 // SOCKET LOGIKA
@@ -494,12 +494,6 @@ app.post(
     res.json(response);
   }
 );
-/* =========================
-   JOB RESPOND
-========================= */
-
-app.post("/api/jobs/:jobId/respond", ...)
-
 
 
 /* =========================
@@ -516,10 +510,18 @@ app.get("/api/jobs/:jobId/messages", requireUser, async (req, res) => {
 
   const messages = await ChatMessage.findAll({
     where: { jobId: job.id },
+    include: [
+      {
+        model: User,
+        as: "sender",
+        attributes: ["id", "name"]
+      }
+    ],
     order: [["createdAt", "ASC"]],
   });
 
   res.json(messages);
+
 });
 
 
@@ -540,12 +542,6 @@ app.post("/api/jobs/:jobId/messages", requireUser, async (req, res) => {
   res.json(newMessage);
 });
 
-
-/* =========================
-   JOB DETAIL
-========================= */
-
-app.get("/api/jobs/:jobId/detail", requireUser, async (req, res) => {
 
 
 /* =========================
