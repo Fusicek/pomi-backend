@@ -17,7 +17,7 @@ const server = http.createServer(app);
 /* CORS */
 
 app.use(cors({
-  origin: ["https://pomi.pro", "https://www.pomi.pro"],
+  origin: ["https://pomi.pro","https://www.pomi.pro"],
   credentials: true
 }));
 
@@ -26,36 +26,30 @@ app.use(express.json());
 /* ROUTES */
 
 app.use("/api/jobs", jobRoutes);
-app.use("/api/jobs", chatRoutes);   // <-- toto vytvoří /api/jobs/:jobId/messages
+app.use("/api/jobs", chatRoutes);
 app.use("/api/users", userRoutes);
 
-/* TEST ROUTE (pro debug) */
+/* SOCKET SERVER */
 
-app.get("/api/test", (req,res)=>{
-  res.json({status:"ok"});
-});
-
-/* SOCKET */
-
-const io = new Server(server,{
-  cors:{
-    origin:["https://pomi.pro","https://www.pomi.pro"],
-    methods:["GET","POST"]
+const io = new Server(server, {
+  cors: {
+    origin: ["https://pomi.pro","https://www.pomi.pro"],
+    methods: ["GET","POST"]
   }
 });
 
+/* předání socketu do modulu */
+
 chatSocket(io);
 
-/* START SERVER */
+/* START */
 
-sequelize.sync({ alter:true }).then(()=>{
+sequelize.sync({ alter:true }).then(() => {
 
   const PORT = process.env.PORT || 3000;
 
-  server.listen(PORT,()=>{
+  server.listen(PORT, () => {
     console.log(`🚀 Server běží na portu ${PORT}`);
   });
 
-}).catch(err=>{
-  console.error("❌ DB ERROR:", err);
 });
